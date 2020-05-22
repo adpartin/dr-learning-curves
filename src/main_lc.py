@@ -51,8 +51,8 @@ def parse_args(args):
     parser.add_argument('--rout', default=None, type=str,
                         help='Run outdir specific run/split (default: None).')
     # Target to predict
-    parser.add_argument('-t', '--trg_name', default='reg', type=str, choices=['AUC'],
-                        help='Name of target variable (default: reg).')
+    parser.add_argument('-t', '--trg_name', default='AUC', type=str, choices=['AUC'],
+                        help='Name of target variable (default: AUC).')
     # Feature types
     parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['DD','GE'], choices=['DD','GE'],
                         help='Prefix to identify the features (default: ...).')
@@ -70,15 +70,23 @@ def parse_args(args):
     parser.add_argument('--lc_sizes_arr', nargs='+', type=int, default=None, help='List of the actual sizes in the learning curve plot (default: None).')
     parser.add_argument('--save_model', action='store_true', help='Whether to trained models (default: False).')
     parser.add_argument('--plot_fit', action='store_true', help='Whether to generate the fit (default: False).')
+
     # HPs
     parser.add_argument('--ml', default='lgb', type=str, choices=['lgb', 'keras'], help='Choose ML model (default: lgb).')
-    parser.add_argument('--epoch', default=1, type=int, help='Number of epochs (default: None).')
+    parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
+    parser.add_argument('--batch_size', default=32, type=int, help='Batch size (default: 32).')
+    parser.add_argument('--dr_rate', default=0.2, type=float, help='Dropout rate (default: 0.2).')
+    parser.add_argument('--batchnorm', action='store_true', help='Use batchnorm (default: False).')
+    parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')
+    parser.add_argument('--lr', default='0.001', type=float, help='Learning rate (default: 0.001).')
+
     parser.add_argument('--hp_file', default=None, type=str, help='File containing training hyperparameters (default: None).')
     parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
                         help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')    
     # Other
     parser.add_argument('--n_jobs', default=8, type=int, help='Default: 8.')
-    args, other_args = parser.parse_known_args(args)
+    # args, other_args = parser.parse_known_args(args)
+    args = parser.parse_args(args)
     return args
 
 
@@ -184,18 +192,23 @@ def run(args):
         keras_clr_kwargs = None
 
     elif args['ml']=='keras':
-        # Keras model def (reg_go)
-        from models.reg_go_model import reg_go_model_def, reg_go_callback_def
+        # Keras model def
+        # from models.reg_go_model import reg_go_model_def, reg_go_callback_def
+        from models.keras_model import nn_reg0_model_def, model_callback_def
         framework = 'keras'
-        ml_model_def = reg_go_model_def
-        keras_callbacks_def = reg_go_callback_def
+        ml_model_def = nn_reg0_model_def
+        keras_callbacks_def = model_callback_def
         mltype = 'reg'
-        ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': 0.1}
+        ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': args['dr_rate'],
+                          'opt_name': args['opt'], 'lr': args['lr'],
+                          'batchnorm': args['batchnorm']}
 
-        ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': 32, 'verbose': 1}
+        ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
+                         'verbose': 1}
         keras_clr_kwargs = {}
         # keras_clr_kwargs = {'mode': 'trng1', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': None}
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
+        # model = ml_model_def(**ml_init_kwargs)
 
     # -----------------------------------------------
     #      Learning curve 
