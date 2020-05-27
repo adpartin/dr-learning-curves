@@ -2,5 +2,5 @@
 !.gitignore
 *__*
 /data/
-/*out*/**
+**/*out*/**
 /*tmp*/

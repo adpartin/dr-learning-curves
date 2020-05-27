@@ -2,13 +2,12 @@ import os
 import sys
 from pathlib import Path
 import argparse
+from pprint import pprint
 
 import numpy as np
 import pandas as pd
 
 fpath = Path(__file__).resolve().parent
-# sys.path.append( os.path.abspath(fpath/'../src/utils') )
-# sys.path.append( str(fpath/'../src/utils') ) # must convert to str
 sys.path.append( str(fpath/'../src') ) # must convert to str
 
 from utils.utils import load_data, dump_dict, get_print_func
@@ -16,28 +15,17 @@ from ml.scale import scale_fea
 from ml.data import extract_subset_fea
 from datasplit.splitter import data_splitter, gen_single_split
 
+# Great blog about keras-tuner
+# www.curiousily.com/posts/hackers-guide-to-hyperparameter-tuning/
 from tensorflow import keras
 from tensorflow.keras import layers
-from kerastuner.tuners import RandomSearch
+from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--sr', type=str, default='ccle')
-parser.add_argument('--seed', type=int, default=None)
-parser.add_argument('--sz', type=int, default=None)
-args = parser.parse_args()
-
-
-datapath = '/vol/ml/apartin/projects/dr-learning-curves/data/ml.data/data.ccle.dsc.rna.raw/data.ccle.dsc.rna.raw.parquet'
-# datapath = '/vol/ml/apartin/projects/dr-learning-curves/data/ml.data/data.gdsc.dsc.rna.raw/data.gdsc.dsc.rna.raw.parquet'
-print_fn = print
-source = [str(s) for s in ['ccle', 'gdsc', 'ctrp'] if s in datapath][0]
-if source is None:
-    outdir = fpath/'out'
-else:
-    outdir = fpath/f'{source}_out'
-os.makedirs(outdir, exist_ok=True)
+MAX_TRIALS = 5
+EXECUTIONS_PER_TRIAL = 1
+EPOCHS = 3
 
 def get_data(datapath, seed=None, tr_sz=None):
     data = load_data( datapath )
@@ -56,16 +44,14 @@ def get_data(datapath, seed=None, tr_sz=None):
 
     kwargs = {'data': xdata, 'te_method' :'simple', 'cv_method': 'simple',
               'te_size': 0.1, 'mltype': 'reg', 'ydata': ydata,
-              'split_on': None, seed=seed, 'print_fn': print_fn}
+              'split_on': None, 'seed': seed, 'print_fn': print_fn}
 
     print_fn('\nGenerate data splits ...')
     # tr_dct, vl_dct, te_dct = data_splitter( n_splits=1, **kwargs )
-    tr_dct, vl_dct, te_dct = gen_single_split( n_splits=1, **kwargs )
-
-    # Get the indices for this split
-    tr_id = tr_dct[0]
-    vl_id = vl_dct[0]
-    te_id = te_dct[0]
+    # tr_id = tr_dct[0]
+    # vl_id = vl_dct[0]
+    # te_id = te_dct[0]
+    tr_id, vl_id, te_id = gen_single_split( **kwargs )
 
     xtr = xdata.iloc[tr_id, :].reset_index(drop=True)
     ytr = np.squeeze(ydata.iloc[tr_id, :]).reset_index(drop=True)
@@ -73,96 +59,170 @@ def get_data(datapath, seed=None, tr_sz=None):
     xvl = xdata.iloc[vl_id, :].reset_index(drop=True)
     yvl = np.squeeze(ydata.iloc[vl_id, :]).reset_index(drop=True)
 
-    # tr_sz = 5000
     if tr_sz is not None:
         xtr = xtr.iloc[:tr_sz,:]
         ytr = ytr.iloc[:tr_sz]
+
+    xtr = xtr.values
+    ytr = ytr.values
+    xvl = xvl.values
+    yvl = yvl.values
     return xtr, ytr, xvl, yvl
 
-xtr, ytr, xvl, yvl = get_data(datapath)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--source', type=str, default='ccle')
+parser.add_argument('--seed', type=int, default=0)
+parser.add_argument('--sz', type=int, default=None)
+args = parser.parse_args()
+
+# import pdb; pdb.set_trace()
+datapath = f'/vol/ml/apartin/projects/dr-learning-curves/data/ml.data/data.{args.source}.dsc.rna.raw/data.{args.source}.dsc.rna.raw.parquet'
+print_fn = print
+source = [str(s) for s in ['ccle', 'gdsc', 'ctrp'] if s in datapath][0]
+if source is None:
+    outdir = fpath/'out'
+else:
+    outdir = fpath/f'{source}_out'
+os.makedirs(outdir, exist_ok=True)
+
+xtr, ytr, xvl, yvl = get_data(datapath, seed=args.seed, tr_sz=args.sz)
+tr_sz = xtr.shape[0]
 
 """Basic case:
 - We define a `build_model` function
 - It returns a compiled model
 - It uses hyperparameters defined on the fly
 """
+class MyHyperModel(HyperModel):
 
+    def __init__(self, input_dim=None, batchnorm=False, initializer='he_uniform'):
+        self.input_dim = input_dim
+        self.initializer = initializer
 
-def build_model(hp):
-# def build_model():
-    initializer='he_uniform'
-    batchnorm=False
-    input_dim=3762
+    # def build_model(self, hp):
+    def build(self, hp):
+    # def build_model():
+        # initializer='he_uniform'
+        # batchnorm=False
+        # input_dim=3762
+        input_dim = self.input_dim
+        initializer = self.initializer
 
-    model = keras.Sequential()
-    inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
+        model = keras.Sequential()
+        inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
 
-    units = [1000, 1000, 500, 250, 125, 60, 30]
-    x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[1], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[2], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[3], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[4], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[5], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    x = layers.Dense(units[6], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-        
-    outputs = layers.Dense(1, activation='relu', name='outputs')(x)
-    model = keras.Model(inputs=inputs, outputs=outputs)
-    
-    # opt = keras.optimizers.Adam(learning_rate=0.0001)
-    opt = keras.optimizers.Adam(
-            hp.Float('learning_rate', min_value=1e-4, max_value=1e-3, sampling='LOG', default=1e-4)
-            )
-    model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
-    return model
+        # HPs
+        hp_dr_rate = hp.Float('dr_rate', min_value=0.0, max_value=0.5,
+                               default=0.25, step=0.05)
 
-# import pdb; pdb.set_trace()
+        batchnorm = hp.Boolean('batchnorm', default=False) 
+
+        units = [1000, 1000, 500, 250, 125, 60, 30]
+        x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[1], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[2], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[3], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[4], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[5], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        x = layers.Dense(units[6], kernel_initializer=initializer)(x)
+        if batchnorm:
+            x = layers.BatchNormalization()(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Dropout(hp_dr_rate)(x)        
+            
+        outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+        model = keras.Model(inputs=inputs, outputs=outputs)
+        
+        # opt = keras.optimizers.Adam(learning_rate=0.0001)
+        hp_lr = hp.Float('learning_rate', min_value=1e-4, max_value=1e-3, sampling='LOG', default=1e-4)
+        # hp_lr = hp.Choice('learning_rate', [1e-4, 1e-3])
+        opt = keras.optimizers.Adam( hp_lr )
+        model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+        return model
+
 # model = build_model()
 # model.fit(xtr, ytr, epochs=10, batch_size=32, verbose=1)
 
-tuner = RandomSearch(
-    build_model,
+hypermodel = MyHyperModel( input_dim=xtr.shape[1] )
+
+proj_name = f'tr_sz_{tr_sz}'
+tuner = BayesianOptimization(
+# tuner = Hyperband(
+# tuner = RandomSearch(
+    # build_model,
+    hypermodel,
     objective='val_mae',
-    max_trials=10,
-    executions_per_trial=1,
+    max_trials=MAX_TRIALS,
+    executions_per_trial=EXECUTIONS_PER_TRIAL,
     directory=outdir,
-    project_name='LC')
+    project_name=proj_name,
+    overwrite=True)
 
 tuner.search_space_summary()
 
-import pdb; pdb.set_trace()
-tuner.search(x=xtr, y=ytr, epochs=5, batch_size=32,
-             validation_data=(xvl,  yvl))
+# import pdb; pdb.set_trace()
+print_fn('Start HP search ...')
+tuner.search(x=xtr, y=ytr, epochs=EPOCHS, batch_size=32,
+             validation_data=(xvl, yvl))
+
+my_log_out = outdir/proj_name/'my_logs'
+os.makedirs(my_log_out, exist_ok=True)
 
 tuner.results_summary()
-model = tuner.get_best_models(num_models=1)
+model = tuner.get_best_models(num_models=1)[0]
+results = model.evaluate(xvl, yvl, batch_size=128, verbose=0)
+model.save( str(my_log_out/'best_model_trained' ))
+print(results)
+
+# Get dict with best HPs
+best_trial = tuner.oracle.get_best_trials(num_trials=1)[0]
+print('Attributes of a Trial object:\n')
+pprint(best_trial.__dict__)
+best_hps = best_trial.hyperparameters.values
+best_hps.update({'tr_sz': tr_sz})
+best_hps.update({'trial_id': best_trial.trial_id})
+dump_dict(best_hps, outpath=my_log_out/'best_hps.txt')
+print(best_hps)
+
+# Return model with best HPs but untrained
+best_hps = tuner.get_best_hyperparameters()[0]
+model = tuner.hypermodel.build(best_hps)
+results = model.evaluate(xvl, yvl, batch_size=128, verbose=0)
+model.save( str(my_log_out/'best_model_untrained' ))
+print(results)
+# best_model.fit(...)
+# =================================================================
 
 # # """Case #2:
 # # - We override the loss and metrics
