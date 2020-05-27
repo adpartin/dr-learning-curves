@@ -21,7 +21,8 @@ from scipy import optimize
 
 from pandas.api.types import is_string_dtype
 from sklearn.preprocessing import LabelEncoder
-from sklearn.externals import joblib
+# from sklearn.externals import joblib
+import joblib
 
 # Utils
 filepath = Path(__file__).resolve().parent
