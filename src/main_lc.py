@@ -218,7 +218,7 @@ def run(args):
                      'n_splits': args['n_splits'], 'mltype': mltype,
                      'lc_step_scale': args['lc_step_scale'], 'lc_sizes': args['lc_sizes'],
                      'min_size': args['min_size'], 'max_size': args['max_size'],
-                     'outdir': rout, 'lc_sizes_arr': args['lc_sizes_arr'],
+                     'lc_sizes_arr': args['lc_sizes_arr'], 'outdir': rout, 
                      'print_fn': print_fn}
                     
     lc_trn_args = { 'framework': framework,
