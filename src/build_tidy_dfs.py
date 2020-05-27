@@ -28,10 +28,6 @@ import seaborn as sns
 filepath = Path(__file__).resolve().parent
 
 # Utils
-# from classlogger import Logger
-# from impute import impute_values
-
-# Utils
 from utils.classlogger import Logger
 from utils.utils import load_data, dump_dict, get_print_func
 from utils.impute import impute_values
@@ -41,7 +37,10 @@ from ml.data import extract_subset_fea
 
 # Default settings
 DATADIR = Path( filepath/'../data/raw' ).resolve()
-OUTDIR = Path( filepath/'../out_dfs' ).resolve()
+# OUTDIR = Path( filepath/'../out_dfs' ).resolve()
+OUTDIR = Path( DATADIR/'../ml.dfs' ).resolve()
+os.makedirs(OUTDIR, exist_ok=True)
+
 RSP_FILENAME = 'combined_single_response_agg'  # reposne data
 # RSP_FILENAME_CHEM = 'chempartner_single_response_agg'  # reposne data
 DSC_FILENAME = 'pan_drugs_dragon7_descriptors.tsv'  # drug descriptors data (new)
@@ -76,7 +75,7 @@ def create_outdir(outdir, args):
     """ Creates output dir. """
     basename = create_basename(args)
     outdir = Path(outdir)/basename
-    os.makedirs(outdir)
+    os.makedirs(outdir, exist_ok=True)
     return outdir
 
 
@@ -140,7 +139,7 @@ def load_rna(datadir, rna_norm, print_fn=print, keep_cells_only=True, float_type
     else:
         fname = f'combined_rnaseq_data_lincs1000_{rna_norm}'
         
-    print_fn('\nLoad RNA-Seq ... {datadir/fname}')
+    print_fn(f'\nLoad RNA-Seq ... {datadir/fname}')
     rna = pd.read_csv(Path(datadir)/fname, sep='\t', low_memory=False,
                       na_values=na_values, warn_bad_lines=True)
     rna = rna.astype(dtype={c: float_type for c in rna.columns[1:]})  # Cast features
@@ -302,11 +301,11 @@ def run(args):
     # -----------------------------------------------
     #     Logger
     # -----------------------------------------------
-    lg = Logger( outdir/'create_tidy_logfile.log' )
+    lg = Logger( outdir/'gen.df.log' )
     print_fn = get_print_func( lg.logger )
     print_fn(f'File path: {filepath}')
     print_fn(f'\n{pformat(args)}')
-    dump_dict(args, outpath=outdir/'gen.dfs.args.txt')
+    dump_dict(args, outpath=outdir/'gen.df.args')
 
     # -----------------------------------------------
     #     Load response data, and features
@@ -364,7 +363,7 @@ def run(args):
     del dsc
 
     # Memory usage
-    print_fn('\nTidy dataframe: {:.3f} GB'.format(sys.getsizeof(data)/1e9))
+    print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))
     for fea_name, fea_prfx in fea_prfx_dct.items():
         cols = [c for c in data.columns if fea_prfx in c]
         tmp = data[cols]
@@ -397,16 +396,16 @@ def run(args):
     data.to_parquet(fpath)
 
     # Load data
-    print_fn(f'\nLoad tidy dataframe ...')
+    print_fn(f'Load tidy dataframe ...')
     data_fromfile = pd.read_parquet(fpath)
 
     # Check that the saved data is the same as original one
-    print_fn(f'\nLoaded dataframe is same as original: {data.equals(data_fromfile)}')
+    print_fn(f'Loaded dataframe is same as original: {data.equals(data_fromfile)}')
 
     # --------------------------------------------------------
-    print_fn('\n{}'.format('-'*90))
+    print_fn('\n{}'.format('-'*80))
     print_fn(f'Tidy data filepath:\n{os.path.abspath(fpath)}')
-    print_fn('-'*90)
+    print_fn('-'*80)
     lg.kill_logger()
 
     
