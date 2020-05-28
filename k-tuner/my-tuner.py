@@ -17,15 +17,17 @@ from datasplit.splitter import data_splitter, gen_single_split
 
 # Great blog about keras-tuner
 # www.curiousily.com/posts/hackers-guide-to-hyperparameter-tuning/
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
-MAX_TRIALS = 5
+MAX_TRIALS = 100
 EXECUTIONS_PER_TRIAL = 1
-EPOCHS = 3
+EPOCHS = 20
+OBJECTIVE = 'val_mae'
 
 def get_data(datapath, seed=None, tr_sz=None):
     data = load_data( datapath )
@@ -33,8 +35,10 @@ def get_data(datapath, seed=None, tr_sz=None):
     trg_name = 'AUC'
 
     # Get features (x), target (y), and meta
-    fea_list = ['GE', 'DD']
-    fea_sep = '_'
+    # fea_list = ['GE', 'DD']
+    # fea_sep = '_'
+    fea_list = ['ge', 'dsc']
+    fea_sep = '.'
     xdata = extract_subset_fea(data, fea_list=fea_list, fea_sep=fea_sep)
     meta = data.drop( columns=xdata.columns )
     ydata = meta[[ trg_name ]]
@@ -67,6 +71,7 @@ def get_data(datapath, seed=None, tr_sz=None):
     ytr = ytr.values
     xvl = xvl.values
     yvl = yvl.values
+    del xdata
     return xtr, ytr, xvl, yvl
 
 
@@ -77,13 +82,15 @@ parser.add_argument('--sz', type=int, default=None)
 args = parser.parse_args()
 
 # import pdb; pdb.set_trace()
-datapath = f'/vol/ml/apartin/projects/dr-learning-curves/data/ml.data/data.{args.source}.dsc.rna.raw/data.{args.source}.dsc.rna.raw.parquet'
+DATADIR = fpath/'../data/ml.dfs'
+datapath = DATADIR/f'data.{args.source}.dsc.rna.raw/data.{args.source}.dsc.rna.raw.parquet'
+
 print_fn = print
-source = [str(s) for s in ['ccle', 'gdsc', 'ctrp'] if s in datapath][0]
+source = [str(s) for s in ['ccle', 'gdsc', 'ctrp'] if s in str(datapath)][0]
 if source is None:
     outdir = fpath/'out'
 else:
-    outdir = fpath/f'{source}_out'
+    outdir = fpath/f'{source}_tuner_out'
 os.makedirs(outdir, exist_ok=True)
 
 xtr, ytr, xvl, yvl = get_data(datapath, seed=args.seed, tr_sz=args.sz)
@@ -109,7 +116,6 @@ class MyHyperModel(HyperModel):
         input_dim = self.input_dim
         initializer = self.initializer
 
-        model = keras.Sequential()
         inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
 
         # HPs
@@ -176,15 +182,21 @@ class MyHyperModel(HyperModel):
 
 hypermodel = MyHyperModel( input_dim=xtr.shape[1] )
 
+# import pdb; pdb.set_trace()
+# keras-team.github.io/keras-tuner/tutorials/distributed-tuning/
+# dist_strategy = tf.distribute.MirroredStrategy()
+dist_strategy = None
+
 proj_name = f'tr_sz_{tr_sz}'
 tuner = BayesianOptimization(
 # tuner = Hyperband(
 # tuner = RandomSearch(
     # build_model,
     hypermodel,
-    objective='val_mae',
+    objective=OBJECTIVE,
     max_trials=MAX_TRIALS,
     executions_per_trial=EXECUTIONS_PER_TRIAL,
+    distribution_strategy=dist_strategy,
     directory=outdir,
     project_name=proj_name,
     overwrite=True)
@@ -212,6 +224,7 @@ pprint(best_trial.__dict__)
 best_hps = best_trial.hyperparameters.values
 best_hps.update({'tr_sz': tr_sz})
 best_hps.update({'trial_id': best_trial.trial_id})
+best_hps.update({OBJECTIVE: best_trial.score})
 dump_dict(best_hps, outpath=my_log_out/'best_hps.txt')
 print(best_hps)
 
