@@ -22,6 +22,8 @@ try:
 
         from tensorflow.keras import backend as K
         from tensorflow.keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
+        from tensorflow import keras
+        from tensorflow.keras import layers
         from tensorflow.keras import optimizers
         from tensorflow.keras.optimizers import SGD, Adam
         from tensorflow.keras.models import Sequential, Model
@@ -146,10 +148,74 @@ class NN_REG0(BaseKerasModel):
 
 
 # ----------------------------------------------------------------
-def nn_reg0_model_def( **model_init ):
-    model = NN_REG0( **model_init )
-    return model.model
+# def nn_reg0_model_def( **model_init ):
+#     model = NN_REG0( **model_init )
+#     return model.model
 
+
+def nn_reg0_model_def(input_dim:int, batchnorm:bool=False, dr_rate:float=0.0,
+        learning_rate:float=0.001, opt_name:str='adam', **kwargs):
+    """
+    Create the Keras model. This is func is required in lrn_crv.py.
+    **kwargs is used to ignore irrelevant arguments passed hps_set
+    of keras-tuner.
+    """
+    initializer='he_uniform'
+        
+    units = [1000, 1000, 500, 250, 125, 60, 30]
+    inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
+
+    x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[3], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[4], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[5], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[6], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    
+    if opt_name.lower()=='adam':
+        opt = keras.optimizers.Adam(learning_rate)
+    else:
+        opt = keras.optimizers.SGD(learning_rate, momentum=0.9)
+    model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+    return model
 
 # ----------------------------------------------------------------
 # def reg_go_arch(input_dim, dr_rate=0.1):

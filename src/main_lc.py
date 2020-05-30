@@ -54,7 +54,7 @@ def parse_args(args):
     parser.add_argument('-t', '--trg_name', default='AUC', type=str, choices=['AUC'],
                         help='Name of target variable (default: AUC).')
     # Feature types
-    parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['DD','GE'], choices=['DD','GE'],
+    parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['DD','GE'], choices=['DD','GE','dsc','ge'],
                         help='Prefix to identify the features (default: ...).')
     parser.add_argument('-fs', '--fea_sep', default='_', choices=['.','_'],
                         help="Separator btw fea prefix and fea name (default: '.').")
@@ -79,6 +79,8 @@ def parse_args(args):
     parser.add_argument('--batchnorm', action='store_true', help='Use batchnorm (default: False).')
     parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')
     parser.add_argument('--lr', default='0.001', type=float, help='Learning rate (default: 0.001).')
+
+    parser.add_argument('--hp_set', default=None, type=str, help="A `:` separated file HP names and values.")
 
     parser.add_argument('--hp_file', default=None, type=str, help='File containing training hyperparameters (default: None).')
     parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
@@ -106,7 +108,7 @@ def run(args):
     if args['gout'] is not None:
         gout = Path( args['gout'] ).resolve()
     else:
-        gout = filepath.parent/'trn'
+        gout = filepath.parent/'lc.trn'
         gout = gout/datapath.with_suffix('.lc').name
     args['gout'] = str(gout)
     os.makedirs(gout, exist_ok=True)
@@ -178,15 +180,40 @@ def run(args):
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
+    def boolify(s):
+        if s=='True': return True
+        if s=='False': return False
+        raise ValueError("huh?")
+
+    def autoconvert(s):
+        for fn in (boolify, int, float):
+            try: return fn(s)
+            except ValueError: pass
+        return s
+
+    if args['hp_set'] is not None:
+        ml_init_kwargs = dict()
+        with open(args['hp_set'], 'r') as file:
+            for line in file:
+                aa = line.strip().split(':')
+                # print(line)
+                # key = aa[0].strip()
+                # val = aa[1].strip()
+                # val = autoconvert( val )
+                # ml_init_kwargs[key] = val
+                ml_init_kwargs[aa[0].strip()] = autoconvert( aa[1].strip() )
+            ml_init_kwargs['input_dim'] = xdata.shape[1] 
+
     if args['ml']=='lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
         framework = 'lightgbm'
         ml_model_def = lgb.LGBMRegressor
         mltype = 'reg'
-        ml_init_kwargs = { 'n_estimators': 100, 'max_depth': -1,
-                           'learning_rate': 0.1, 'num_leaves': 31,
-                           'n_jobs': 8, 'random_state': None }
+        if args['hp_set'] is None:
+            ml_init_kwargs = { 'n_estimators': 100, 'max_depth': -1,
+                               'learning_rate': 0.1, 'num_leaves': 31,
+                               'n_jobs': 8, 'random_state': None }
         ml_fit_kwargs = {'verbose': False, 'early_stopping_rounds': 10}
         keras_callbacks_def = None
         keras_clr_kwargs = None
@@ -199,10 +226,10 @@ def run(args):
         ml_model_def = nn_reg0_model_def
         keras_callbacks_def = model_callback_def
         mltype = 'reg'
-        ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': args['dr_rate'],
-                          'opt_name': args['opt'], 'lr': args['lr'],
-                          'batchnorm': args['batchnorm']}
-
+        if args['hp_set'] is None:
+            ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': args['dr_rate'],
+                              'opt_name': args['opt'], 'lr': args['lr'],
+                              'batchnorm': args['batchnorm']}
         ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
                          'verbose': 1}
         keras_clr_kwargs = {}
