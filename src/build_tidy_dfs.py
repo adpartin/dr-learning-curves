@@ -37,14 +37,12 @@ from ml.data import extract_subset_fea
 
 # Default settings
 DATADIR = Path( filepath/'../data/raw' ).resolve()
-# OUTDIR = Path( filepath/'../out_dfs' ).resolve()
 OUTDIR = Path( DATADIR/'../ml.dfs' ).resolve()
 os.makedirs(OUTDIR, exist_ok=True)
 
 RSP_FILENAME = 'combined_single_response_agg'  # reposne data
 # RSP_FILENAME_CHEM = 'chempartner_single_response_agg'  # reposne data
 DSC_FILENAME = 'pan_drugs_dragon7_descriptors.tsv'  # drug descriptors data (new)
-# DSC_FILENAME = 'combined_pubchem_dragon7_descriptors.tsv'  # drug descriptors data (old)
 DRUG_META_FILENAME = 'drug_info'
 CELL_META_FILENAME = 'combined_cancer_types'
 # CELL_META_FILENAME = 'combined_metadata_2018May.txt'
@@ -52,8 +50,8 @@ CELL_META_FILENAME = 'combined_cancer_types'
 
 # Settings
 na_values = ['na', '-', '']
-fea_prfx_dct = {'rna': 'ge.', 'cnv': 'cnv.', 'snp': 'snp.',
-                'dsc': 'dsc.', 'fng': 'fng.'}
+fea_prfx_dct = {'rna': 'ge_', 'cnv': 'cnv_', 'snp': 'snp_',
+                'dsc': 'dd_', 'fng': 'fng_'}
 
 prfx_dtypes = {'rna': np.float32, 'cnv': np.int8, 'snp': np.int8,
                'dsc': np.float32, 'fng': np.int8}
@@ -86,11 +84,6 @@ def dump_dict(dct, outpath='./dict.txt'):
             file.write('{}: {}\n'.format(k, dct[k]))
             
 
-# def get_print_func(logger):
-#     """ Returns the python 'print' function if logger is None. Othersiwe, returns logger.info. """
-#     return print if logger is None else logger.info            
-            
-            
 def groupby_src_and_print(df, print_fn=print):        
     print_fn( df.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index() )
             
@@ -267,17 +260,17 @@ def plot_rsp_dists(rsp, rsp_cols, savepath=None):
         
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Create tidy data.')
-    parser.add_argument('--drug_fea', type=str, nargs='+', choices=['dsc', 'fng'], default=['dsc'], help='Default: [dsc].')
-    parser.add_argument('--cell_fea', type=str, nargs='+', choices=['rna', 'cnv'], default=['rna'], help='Default: [rna].')
+    parser.add_argument('--drug_fea', type=str, nargs='+', choices=['dsc'], default=['dsc'], help='Default: [dsc].')
+    parser.add_argument('--cell_fea', type=str, nargs='+', choices=['rna'], default=['rna'], help='Default: [rna].')
     parser.add_argument('--rna_norm', type=str, choices=['raw', 'combat', 'source_scale'], default='raw', help='Default: raw.')
     parser.add_argument('--gout', type=str, default=OUTDIR, help=f'Default: {OUTDIR}')
 
     parser.add_argument('--keep_bad', action='store_true', default=False, help='Default: False')
     parser.add_argument('--dropna_th', type=float, default=0.4, help='Default: 0.4')
 
-    parser.add_argument('--src', nargs='+', default=None, choices=['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60'],
+    parser.add_argument('--src', nargs='+', default=None,
+                        choices=['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60'],
                         help='Data sources to extract (default: None).')
-
     args = parser.parse_args(args)
     return args
 
