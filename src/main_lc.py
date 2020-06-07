@@ -30,6 +30,7 @@ from ml.data import extract_subset_fea
 import learningcurve as lc
 from learningcurve.lrn_crv import LearningCurve
 import learningcurve.lc_plots as lc_plots 
+from utils.k_tuner import read_hp_prms
     
 
 def parse_args(args):
@@ -54,10 +55,10 @@ def parse_args(args):
     parser.add_argument('-t', '--trg_name', default='AUC', type=str, choices=['AUC'],
                         help='Name of target variable (default: AUC).')
     # Feature types
-    parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['DD','GE'], choices=['DD','GE','dsc','ge'],
-                        help='Prefix to identify the features (default: ...).')
+    parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['ge','dd'], choices=['DD','GE','dd','ge'],
+                        help='Prefix to identify the features (default: [ge, dd]).')
     parser.add_argument('-fs', '--fea_sep', default='_', choices=['.','_'],
-                        help="Separator btw fea prefix and fea name (default: '.').")
+                        help="Separator btw fea prefix and fea name (default: '_').")
     # Feature scaling
     parser.add_argument('-sc', '--scaler', default=None, type=str, choices=['stnd', 'minmax', 'rbst'],
                         help='Feature normalization method (stnd, minmax, rbst) (default: None).')    
@@ -80,7 +81,8 @@ def parse_args(args):
     parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')
     parser.add_argument('--lr', default='0.001', type=float, help='Learning rate (default: 0.001).')
 
-    parser.add_argument('--hp_set', default=None, type=str, help="A `:` separated file HP names and values.")
+    parser.add_argument('--hp_path', default=None, type=str, help="Path to a single set of HP names and values.")
+    parser.add_argument('--hp_dir', default=None, type=str, help="Path to a dir with multiple sets of HP names and values.")
 
     parser.add_argument('--hp_file', default=None, type=str, help='File containing training hyperparameters (default: None).')
     parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
@@ -180,37 +182,13 @@ def run(args):
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
-    def boolify(s):
-        if s=='True': return True
-        if s=='False': return False
-        raise ValueError("huh?")
-
-    def autoconvert(s):
-        for fn in (boolify, int, float):
-            try: return fn(s)
-            except ValueError: pass
-        return s
-
-    if args['hp_set'] is not None:
-        ml_init_kwargs = dict()
-        with open(args['hp_set'], 'r') as file:
-            for line in file:
-                aa = line.strip().split(':')
-                # print(line)
-                # key = aa[0].strip()
-                # val = aa[1].strip()
-                # val = autoconvert( val )
-                # ml_init_kwargs[key] = val
-                ml_init_kwargs[aa[0].strip()] = autoconvert( aa[1].strip() )
-            ml_init_kwargs['input_dim'] = xdata.shape[1] 
-
     if args['ml']=='lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
         framework = 'lightgbm'
         ml_model_def = lgb.LGBMRegressor
         mltype = 'reg'
-        if args['hp_set'] is None:
+        if (args['hp_path'] is None) and (args['hp_dir'] is None):
             ml_init_kwargs = { 'n_estimators': 100, 'max_depth': -1,
                                'learning_rate': 0.1, 'num_leaves': 31,
                                'n_jobs': 8, 'random_state': None }
@@ -220,13 +198,12 @@ def run(args):
 
     elif args['ml']=='keras':
         # Keras model def
-        # from models.reg_go_model import reg_go_model_def, reg_go_callback_def
         from models.keras_model import nn_reg0_model_def, model_callback_def
         framework = 'keras'
         ml_model_def = nn_reg0_model_def
         keras_callbacks_def = model_callback_def
         mltype = 'reg'
-        if args['hp_set'] is None:
+        if (args['hp_path'] is None) and (args['hp_dir'] is None):
             ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': args['dr_rate'],
                               'opt_name': args['opt'], 'lr': args['lr'],
                               'batchnorm': args['batchnorm']}
@@ -236,6 +213,14 @@ def run(args):
         # keras_clr_kwargs = {'mode': 'trng1', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': None}
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
         # model = ml_model_def(**ml_init_kwargs)
+
+    # Pre-determined HPs
+    if args['hp_dir'] is not None:
+        ml_init_kwargs = dict()
+    elif args['hp_path'] is not None:
+        hp_path = Path(args['hp_path'])/'best_hps.txt'
+        ml_init_kwargs = read_hp_prms( hp_path )
+        ml_init_kwargs['input_dim'] = xdata.shape[1] 
 
     # -----------------------------------------------
     #      Learning curve 
@@ -254,7 +239,8 @@ def run(args):
                     'ml_init_args': ml_init_kwargs,
                     'ml_fit_args': ml_fit_kwargs,
                     'keras_callbacks_def': keras_callbacks_def,
-                    'keras_clr_args': keras_clr_kwargs }
+                    'keras_clr_args': keras_clr_kwargs,
+                    'hp_dir': Path(args['hp_dir']).resolve() }
 
     # LC object
     lc_obj = LearningCurve( X=xdata, Y=ydata, meta=meta, **lc_init_args )

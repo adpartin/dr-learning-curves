@@ -2,9 +2,9 @@
 
 # SOURCE=gdsc
 # SOURCE=ctrp
-# sources=('gdsc' 'ctrp' 'ccle')
+sources=('gdsc' 'ctrp' 'ccle')
 
-for src in ${sources[@]}; do
+for SOURCE in ${sources[@]}; do
     python src/build_tidy_dfs.py --src $SOURCE
 done
 

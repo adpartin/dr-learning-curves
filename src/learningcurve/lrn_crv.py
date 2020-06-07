@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 from time import time
+from glob import glob
 
 import sklearn
 import numpy as np
@@ -33,7 +34,7 @@ filepath = Path(__file__).resolve().parent
 from datasplit.splitter import data_splitter
 from ml.keras_utils import save_krs_history, plot_prfrm_metrics, r2_krs
 from ml.evals import calc_preds, calc_scores, dump_preds
-from utils.utils import dump_dict
+from utils.utils import dump_dict, verify_path
 from utils.plots import plot_hist, plot_runtime
 
 
@@ -262,6 +263,8 @@ class LearningCurve():
             ml_init_args: dict={},
             ml_fit_args: dict={},
 
+            hp_dir: str=None,
+
             keras_callbacks_def=None,
             # keras_callbacks_kwargs: dict={},
             keras_clr_args: dict={},
@@ -283,6 +286,13 @@ class LearningCurve():
         self.ml_model_def = ml_model_def
         self.ml_init_args = ml_init_args
         self.ml_fit_args = ml_fit_args
+
+        self.hp_dir = Path(hp_dir)
+        if self.hp_dir is not None:
+            from utils.k_tuner import read_hp_prms
+            files = glob( str(self.hp_dir/'tr_sz*') )
+            hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
+            self.hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
 
         self.keras_callbacks_def = keras_callbacks_def
         # self.keras_callbacks_kwargs = keras_callbacks_kwargs
@@ -330,6 +340,18 @@ class LearningCurve():
                 
                 xtr_sub = np.asarray( xtr_sub )
                 ytr_sub = np.asarray( ytr_sub )                
+
+                # HP set per tr size
+                if self.hp_sizes is not None:
+                    # files = glob( str(self.hp_dir/'tr_sz*') )
+                    # hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
+                    # hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
+                    keys_vec = list( self.hp_sizes.keys() ) 
+                    idx_min = np.argmin( np.abs( keys_vec - tr_sz ) )
+                    hp_path = self.hp_sizes[ keys_vec[0] ]
+                    hp_path = hp_path/'best_hps.txt'
+                    self.ml_init_args = read_hp_prms( hp_path )
+                    self.ml_init_args['input_dim'] = xtr_sub.shape[1] 
                 
                 # Get the estimator
                 model = self.ml_model_def( **self.ml_init_args )
