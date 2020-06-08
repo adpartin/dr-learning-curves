@@ -262,8 +262,9 @@ class LearningCurve():
             ml_model_def,
             ml_init_args: dict={},
             ml_fit_args: dict={},
+            data_prep_def=None,
 
-            hp_dir: str=None,
+            ps_hpo_dir: str=None,
 
             keras_callbacks_def=None,
             # keras_callbacks_kwargs: dict={},
@@ -276,8 +277,10 @@ class LearningCurve():
         Args:
             framework : ml framework (keras, lightgbm, or sklearn)
             mltype : type to ml problem (reg or cls)
+            ml_model_def : func than create the ml model
             ml_init_args : dict of parameters that initializes the estimator
             ml_fit_args : dict of parameters to the estimator's fit() method
+            data_prep_def : func that prepares data for keras model
             keras_clr_args : 
             metrics : allow to pass a string of metrics  TODO!
         """
@@ -286,13 +289,16 @@ class LearningCurve():
         self.ml_model_def = ml_model_def
         self.ml_init_args = ml_init_args
         self.ml_fit_args = ml_fit_args
+        self.data_prep_def = data_prep_def
 
-        self.hp_dir = Path(hp_dir)
-        if self.hp_dir is not None:
+        if ps_hpo_dir is not None:
             from utils.k_tuner import read_hp_prms
-            files = glob( str(self.hp_dir/'tr_sz*') )
+            self.ps_hpo_dir = Path(ps_hpo_dir)
+            files = glob( str(self.ps_hpo_dir/'tr_sz*') )
             hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
             self.hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
+        else:
+            self.hp_sizes = None
 
         self.keras_callbacks_def = keras_callbacks_def
         # self.keras_callbacks_kwargs = keras_callbacks_kwargs
@@ -319,14 +325,15 @@ class LearningCurve():
             te_id = self.te_dct[ split_num ]
             
             # Extract Train set T, Validation set V, and Test set E
-            xtr, ytr, mtr = self.get_data_by_id( tr_id ) # samples from xtr are sequentially sampled for TRAIN
-            xvl, yvl, mvl = self.get_data_by_id( vl_id ) # fixed set of VAL samples for the current CV split
-            xte, yte, mte = self.get_data_by_id( te_id ) # fixed set of TEST samples for the current CV split
+            xtr_df, ytr_df, mtr_df = self.get_data_by_id( tr_id ) # samples from xtr are sequentially sampled for TRAIN
+            xvl_df, yvl_df, mvl_df = self.get_data_by_id( vl_id ) # fixed set of VAL samples for the current CV split
+            xte_df, yte_df, mte_df = self.get_data_by_id( te_id ) # fixed set of TEST samples for the current CV split
 
-            xvl = np.asarray( xvl )
-            yvl = np.asarray( yvl )
-            xte = np.asarray( xte )
-            yte = np.asarray( yte )            
+            # New
+            # xvl = np.asarray( xvl_df )
+            yvl = np.asarray( yvl_df )
+            # xte = np.asarray( xte_df )
+            yte = np.asarray( yte_df )            
             
             # Loop over subset sizes (iterate across the dataset sizes and train)
             for i, tr_sz in enumerate(self.tr_sizes):
@@ -334,16 +341,17 @@ class LearningCurve():
                 self.print_fn(f'\tTrain size: {tr_sz} ({i+1}/{len(self.tr_sizes)})')   
 
                 # Sequentially get a subset of samples (the input dataset X must be shuffled)
-                xtr_sub = xtr.iloc[:tr_sz, :]
-                ytr_sub = ytr.iloc[:tr_sz]
-                mtr_sub = mtr.iloc[:tr_sz, :]
+                xtr_sub_df = xtr_df.iloc[:tr_sz, :]
+                ytr_sub_df = ytr_df.iloc[:tr_sz]
+                mtr_sub_df = mtr_df.iloc[:tr_sz, :]
                 
-                xtr_sub = np.asarray( xtr_sub )
-                ytr_sub = np.asarray( ytr_sub )                
+                # New
+                # xtr_sub = np.asarray( xtr_sub_df )
+                ytr_sub = np.asarray( ytr_sub_df )                
 
                 # HP set per tr size
                 if self.hp_sizes is not None:
-                    # files = glob( str(self.hp_dir/'tr_sz*') )
+                    # files = glob( str(self.ps_hpo_dir/'tr_sz*') )
                     # hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
                     # hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
                     keys_vec = list( self.hp_sizes.keys() ) 
@@ -352,7 +360,12 @@ class LearningCurve():
                     hp_path = hp_path/'best_hps.txt'
                     self.ml_init_args = read_hp_prms( hp_path )
                     self.ml_init_args['input_dim'] = xtr_sub.shape[1] 
-                
+
+                if self.data_prep_def is not None:
+                    xtr_sub = self.data_prep_def(xtr_sub_df)
+                    xvl = self.data_prep_def(xvl_df)
+                    xte = self.data_prep_def(xte_df)
+
                 # Get the estimator
                 model = self.ml_model_def( **self.ml_init_args )
                 
@@ -365,6 +378,7 @@ class LearningCurve():
                     model, trn_outdir, runtime = self.trn_sklearn_model(model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                                                                         split=split_num, tr_sz=tr_sz, eval_set=None)
                 elif self.framework=='keras':
+                    # model, trn_outdir, runtime = self.trn_keras_model(model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                     model, trn_outdir, runtime = self.trn_keras_model(model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                                                                       split=split_num, tr_sz=tr_sz, eval_set=eval_set)
                 elif self.framework=='pytorch':
@@ -470,6 +484,7 @@ class LearningCurve():
         return x_data, y_data, m_data    
 
 
+    # def trn_keras_model(self, model, xtr_sub, ytr_sub, split, tr_sz, eval_set=None):
     def trn_keras_model(self, model, xtr_sub, ytr_sub, split, tr_sz, eval_set=None):
         """ Train and save Keras model. """
         trn_outdir = self.create_trn_outdir(split, tr_sz)
@@ -494,7 +509,7 @@ class LearningCurve():
 
         # Load the best model (https://github.com/keras-team/keras/issues/5916)
         # model = keras.models.load_model(str(trn_outdir/'model_best.h5'), custom_objects={'r2_krs': ml_models.r2_krs})
-        model_path = trn_outdir / 'model_best.h5'
+        model_path = trn_outdir/'model_best.h5'
         if model_path.exists():
             # model = keras.models.load_model( str(model_path) )
             import tensorflow as tf
@@ -521,7 +536,7 @@ class LearningCurve():
         ml_fit_args.pop('eval_set', None)
 
         if self.save_model:
-            joblib.dump(model, filename = trn_outdir / ('model.'+self.model_name+'.pkl') )
+            joblib.dump(model, filename = trn_outdir/('model.'+self.model_name+'.pkl') )
         return model, trn_outdir, runtime
     
     

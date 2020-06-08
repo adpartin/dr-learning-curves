@@ -73,18 +73,17 @@ def parse_args(args):
     parser.add_argument('--plot_fit', action='store_true', help='Whether to generate the fit (default: False).')
 
     # HPs
-    parser.add_argument('--ml', default='lgb', type=str, choices=['lgb', 'keras'], help='Choose ML model (default: lgb).')
+    parser.add_argument('--ml', default='lgb', type=str, choices=['lgb', 'nn_reg0', 'nn_reg1'],
+                        help='Choose ML model (default: lgb).')
     parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
-    parser.add_argument('--batch_size', default=32, type=int, help='Batch size (default: 32).')
+    parser.add_argument('--batch_size', default=64, type=int, help='Batch size (default: 64).')
     parser.add_argument('--dr_rate', default=0.2, type=float, help='Dropout rate (default: 0.2).')
     parser.add_argument('--batchnorm', action='store_true', help='Use batchnorm (default: False).')
     parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')
     parser.add_argument('--lr', default='0.001', type=float, help='Learning rate (default: 0.001).')
 
-    parser.add_argument('--hp_path', default=None, type=str, help="Path to a single set of HP names and values.")
-    parser.add_argument('--hp_dir', default=None, type=str, help="Path to a dir with multiple sets of HP names and values.")
-
-    parser.add_argument('--hp_file', default=None, type=str, help='File containing training hyperparameters (default: None).')
+    parser.add_argument('--ls_hpo_dir', default=None, type=str, help='Path to a single set of HP names and values.')
+    parser.add_argument('--ps_hpo_dir', default=None, type=str, help='Path to a dir with multiple sets of HP names and values.')
     parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
                         help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')    
     # Other
@@ -97,6 +96,8 @@ def parse_args(args):
 def run(args):
     t0 = time()
     datapath = Path( args['datapath'] ).resolve()
+    ls_hpo_dir = None if args['ls_hpo_dir'] is None else Path(args['ls_hpo_dir']).resolve()
+    ps_hpo_dir = None if args['ps_hpo_dir'] is None else Path(args['ps_hpo_dir']).resolve()
 
     if args['splitdir'] is None:
         splitdir = None
@@ -188,23 +189,27 @@ def run(args):
         framework = 'lightgbm'
         ml_model_def = lgb.LGBMRegressor
         mltype = 'reg'
-        if (args['hp_path'] is None) and (args['hp_dir'] is None):
+        if (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = { 'n_estimators': 100, 'max_depth': -1,
                                'learning_rate': 0.1, 'num_leaves': 31,
                                'n_jobs': 8, 'random_state': None }
         ml_fit_kwargs = {'verbose': False, 'early_stopping_rounds': 10}
+        data_prep_def = None
         keras_callbacks_def = None
         keras_clr_kwargs = None
 
-    elif args['ml']=='keras':
+    # elif args['ml']=='keras':
+    elif args['ml'] == 'nn_reg0':
         # Keras model def
-        from models.keras_model import nn_reg0_model_def, model_callback_def
+        from models.keras_model import nn_reg0_model_def, data_prep_nn_reg0_def,model_callback_def
         framework = 'keras'
-        ml_model_def = nn_reg0_model_def
-        keras_callbacks_def = model_callback_def
         mltype = 'reg'
-        if (args['hp_path'] is None) and (args['hp_dir'] is None):
-            ml_init_kwargs = {'input_dim': xdata.shape[1], 'dr_rate': args['dr_rate'],
+        ml_model_def = nn_reg0_model_def
+        data_prep_def = data_prep_nn_reg0_def
+        keras_callbacks_def = model_callback_def
+        if (ls_hpo_dir is None) and (ps_hpo_dir is None):
+            ml_init_kwargs = {'input_dim': xdata.shape[1],
+                              'dr_rate': args['dr_rate'],
                               'opt_name': args['opt'], 'lr': args['lr'],
                               'batchnorm': args['batchnorm']}
         ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
@@ -214,95 +219,57 @@ def run(args):
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
         # model = ml_model_def(**ml_init_kwargs)
 
+    elif args['ml'] == 'nn_reg1':
+        from models.keras_model import nn_reg1_model_def, data_prep_nn_reg1_def, model_callback_def
+        framework = 'keras'
+        mltype = 'reg'
+        ml_model_def = nn_reg1_model_def
+        data_prep_def = data_prep_nn_reg1_def
+        keras_callbacks_def = model_callback_def
+        x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
+        x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
+        if (ls_hpo_dir is None) and (ps_hpo_dir is None):
+            ml_init_kwargs = {'in_dim_ge': x_ge.shape[1], 'in_dim_dd': x_dd.shape[1],
+                              'dr_rate': args['dr_rate'],
+                              'opt_name': args['opt'], 'lr': args['lr'],
+                              'batchnorm': args['batchnorm']}
+        ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
+                         'verbose': 1}
+        keras_clr_kwargs = {}
+        # model = ml_model_def(**ml_init_kwargs)
+
     # Pre-determined HPs
-    if args['hp_dir'] is not None:
+    if ps_hpo_dir is not None:
         ml_init_kwargs = dict()
-    elif args['hp_path'] is not None:
-        hp_path = Path(args['hp_path'])/'best_hps.txt'
-        ml_init_kwargs = read_hp_prms( hp_path )
+    elif ls_hpo_dir is not None:
+        ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
+        ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
         ml_init_kwargs['input_dim'] = xdata.shape[1] 
 
     # -----------------------------------------------
     #      Learning curve 
     # -----------------------------------------------        
     # LC args
-    lc_init_args = { 'cv_lists': cv_lists,
-                     'n_splits': args['n_splits'], 'mltype': mltype,
-                     'lc_step_scale': args['lc_step_scale'], 'lc_sizes': args['lc_sizes'],
-                     'min_size': args['min_size'], 'max_size': args['max_size'],
-                     'lc_sizes_arr': args['lc_sizes_arr'], 'outdir': rout, 
-                     'print_fn': print_fn}
+    lc_init_args = {'cv_lists': cv_lists,
+                    'n_splits': args['n_splits'], 'mltype': mltype,
+                    'lc_step_scale': args['lc_step_scale'], 'lc_sizes': args['lc_sizes'],
+                    'min_size': args['min_size'], 'max_size': args['max_size'],
+                    'lc_sizes_arr': args['lc_sizes_arr'], 'outdir': rout, 
+                    'print_fn': print_fn}
                     
-    lc_trn_args = { 'framework': framework,
-                    'n_jobs': args['n_jobs'], 
-                    'ml_model_def': ml_model_def,
-                    'ml_init_args': ml_init_kwargs,
-                    'ml_fit_args': ml_fit_kwargs,
-                    'keras_callbacks_def': keras_callbacks_def,
-                    'keras_clr_args': keras_clr_kwargs,
-                    'hp_dir': Path(args['hp_dir']).resolve() }
+    lc_trn_args = {'framework': framework,
+                   'n_jobs': args['n_jobs'], 
+                   'ml_model_def': ml_model_def,
+                   'ml_init_args': ml_init_kwargs,
+                   'ml_fit_args': ml_fit_kwargs,
+                   'data_prep_def': data_prep_def,
+                   'keras_callbacks_def': keras_callbacks_def,
+                   'keras_clr_args': keras_clr_kwargs,
+                   'ps_hpo_dir': ps_hpo_dir}
 
     # LC object
     lc_obj = LearningCurve( X=xdata, Y=ydata, meta=meta, **lc_init_args )
-
-    if args['hp_file'] is None:
-        # The regular workflow where all subsets are trained with the same HPs
-        lc_scores = lc_obj.trn_learning_curve( **lc_trn_args )
-    else:
-        # The workflow follows PS-HPO where we a the set HPs per subset.
-        # In this case we need to call the trn_learning_curve() method for
-        # every subset with appropriate HPs. We'll need to update lc_sizes_arr
-        # for every run of trn_learning_curve().
-        fpath = verify_dirpath(args['hp_file'])
-        hp = pd.read_csv(fpath)
-        hp.to_csv(rout/'hpo_ps.csv', index=False)
-
-        # Params to update based on framework
-        if framework == 'lightgbm':
-            prm_names = ['gbm_trees', 'gbm_max_depth', 'gbm_lr', 'gbm_leaves']
-        elif framework == 'sklearn':
-            prm_names = ['rf_trees']
-        elif framework == 'keras':
-            prm_names = ['dr_rate', 'opt', 'lr', 'batchnorm', 'batch_size']
-
-        # Params of interest
-        df_print = hp[ prm_names + ['tr_size', 'mean_absolute_error'] ]
-        print_fn( df_print )
-
-        # Find the intersect btw available and requested tr sizes
-        tr_sizes = list( set(lc_obj.tr_sizes).intersection(set(hp['tr_size'].unique())) )
-        print_fn('\nIntersect btw available and requested tr sizes: {}'.format( tr_sizes ))
-
-        lc_scores = []
-        for sz in tr_sizes:
-            prm = hp[hp['tr_size']==sz]
-            lrn_crv_init_args['lc_sizes_arr'] = [sz]
-            lc_obj.tr_sizes = [sz] 
-            
-            # Update model_init and model_fit params
-            prm = prm.to_dict(orient='records')[0]  # unroll single-raw df into dict
-                
-            # Update args
-            print_fn('\nUpdate args for tr size {}'.format(sz))
-            print_fn( df_print[ df_print['tr_size']==sz ] )
-            for n in prm_names:
-                print_fn('{}: set to {}'.format(n, prm[n]))
-                args[n] = prm[n]
-
-            ml_init_kwargs, ml_fit_kwargs = get_model_args(args)
-            lc_trn_args['ml_init_args'] = ml_init_kwargs
-            lc_trn_args['ml_fit_args'] = ml_fit_kwargs
-
-            per_subset_scores = lc_obj.trn_learning_curve( **lc_trn_args )
-            lc_scores.append( per_subset_scores )
-
-        # Concat per-subset scores 
-        lc_scores = pd.concat(lc_scores, axis=0)
-
-        # Save tr, vl, te separently
-        lc_scores[ lc_scores['set']=='tr' ].to_csv( rout/'tr_lc_scores.csv', index=False) 
-        lc_scores[ lc_scores['set']=='vl' ].to_csv( rout/'vl_lc_scores.csv', index=False) 
-        lc_scores[ lc_scores['set']=='te' ].to_csv( rout/'te_lc_scores.csv', index=False) 
+    lc_scores = lc_obj.trn_learning_curve( **lc_trn_args )
 
     # Dump all scores
     lc_scores.to_csv( rout/'lc_scores.csv', index=False)
@@ -381,6 +348,7 @@ def run(args):
     """
     # ====================================
     
+    # ------------------------------------------------------
     if (time()-t0)//3600 > 0:
         print_fn('Runtime: {:.1f} hrs'.format( (time()-t0)/3600) )
     else:

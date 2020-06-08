@@ -1,11 +1,13 @@
 import os
 import sys
 from pathlib import Path
+import numpy as np
 
 # Utils
 filepath = Path(__file__).resolve().parent
 # sys.path.append( os.path.abspath(filepath/'../ml') )
 from ml.keras_utils import r2_krs
+from ml.data import extract_subset_fea
 
 
 try:
@@ -153,8 +155,10 @@ class NN_REG0(BaseKerasModel):
 #     return model.model
 
 
-def nn_reg0_model_def(input_dim:int, batchnorm:bool=False, dr_rate:float=0.0,
-        learning_rate:float=0.001, opt_name:str='adam', **kwargs):
+def nn_reg0_model_def(input_dim:int,
+                      batchnorm:bool=False, dr_rate:float=0.2,
+                      learning_rate:float=0.001, opt_name:str='adam',
+                      **kwargs):
     """
     Create the Keras model. This is func is required in lrn_crv.py.
     **kwargs is used to ignore irrelevant arguments passed hps_set
@@ -217,29 +221,136 @@ def nn_reg0_model_def(input_dim:int, batchnorm:bool=False, dr_rate:float=0.0,
     model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
     return model
 
+
+# ------------------------------------------------------------
+def data_prep_nn_reg0_def(xdata):
+    """
+    This func prepare the dataset for keras model.
+    This function works in a similar way as DataLoader
+    in PyTorch.
+    """
+    xdata = np.asarray( xdata )
+    x_dct = {'inputs': xdata}
+    return x_dct
+
+
 # ----------------------------------------------------------------
-# def reg_go_arch(input_dim, dr_rate=0.1):
-#     DR = dr_rate
-#     inputs = Input(shape=(input_dim,))
-#     x = Dense(250, activation='relu')(inputs)
-#     x = Dropout(DR)(x)
-#     x = Dense(125, activation='relu')(x)
-#     x = Dropout(DR)(x)
-#     x = Dense(60, activation='relu')(x)
-#     x = Dropout(DR)(x)
-#     x = Dense(30, activation='relu')(x)
-#     x = Dropout(DR)(x)
-#     outputs = Dense(1, activation='relu')(x)
+def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
+                      batchnorm:bool=False, dr_rate:float=0.2,
+                      learning_rate:float=0.001, opt_name:str='adam',
+                      **kwargs):
+    """
+    Create the Keras model. This is func is required in lrn_crv.py.
+    **kwargs is used to ignore irrelevant arguments passed hps_set
+    of keras-tuner.
+    """
+    initializer='he_uniform'
+        
+    # ---------------------
+    # GE
+    in_ge = Input(shape=(in_dim_ge,), name='in_ge')
+    units_ge = [1000, 500, 250]
 
-#     model = Model(inputs=inputs, outputs=outputs)
-#     return model
+    x = layers.Dense(units_ge[0], kernel_initializer=initializer)(in_ge)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_ge[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_ge[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    out_ge = layers.Dropout(dr_rate)(x)        
+        
+    ge = Model(inputs=in_ge, outputs=out_ge, name=f'out_ge')
 
-# def reg_go_model_def( **model_init ):
-#     model = reg_go_arch( **model_init )
-#     opt = SGD(lr=0.0001, momentum=0.9)
-#     model.compile(loss='mean_squared_error',
-#                   optimizer=opt,
-#                   metrics=['mae', r2_krs])
-#     return model
+    # ---------------------
+    # DD
+    in_dd = Input(shape=(in_dim_dd,), name='in_dd')
+    units_dd = [1000, 500, 250]
+
+    x = layers.Dense(units_dd[0], kernel_initializer=initializer)(in_dd)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_dd[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_dd[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    out_dd = layers.Dropout(dr_rate)(x)        
+        
+    dd = Model(inputs=in_dd, outputs=out_dd, name=f'out_dd')
+
+    # ---------------------
+    # Merge towers
+    mrg = layers.concatenate([ge.output, dd.output], axis=1)
+    units_mrg = [250, 125, 60, 30]
+
+    x = layers.Dense(units_mrg[0], kernel_initializer=initializer)(mrg)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_mrg[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_mrg[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_mrg[3], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+
+    # ---------------------
+    # Output
+    outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+    
+    # ---------------------
+    # Input --> Output
+    model = Model(inputs=[in_ge, in_dd], outputs=[outputs])
+    
+    if opt_name.lower()=='adam':
+        opt = keras.optimizers.Adam(learning_rate)
+    else:
+        opt = keras.optimizers.SGD(learning_rate, momentum=0.9)
+    model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+    return model
 
 
+# ------------------------------------------------------------
+def data_prep_nn_reg1_def(xdata):
+    """
+    This func prepare the dataset for keras model.
+    This function works in a similar way as DataLoader
+    in PyTorch.
+    """
+    x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
+    x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
+    x_ge = np.asarray( x_ge )
+    x_dd = np.asarray( x_dd )                
+    x_dct = {'in_ge': x_ge, 'in_dd': x_dd}
+    return x_dct

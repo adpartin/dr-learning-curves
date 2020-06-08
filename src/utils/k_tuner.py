@@ -15,10 +15,10 @@ def autoconvert(s):
             pass
     return s
 
-def read_hp_prms(hp_path):
+def read_hp_prms(hp_file):
     dct = dict()
-    hp_path = verify_path( hp_path )
-    with open(hp_path, 'r') as file:
+    hp_file = verify_path( hp_file )
+    with open(hp_file, 'r') as file:
         for line in file:
             aa = line.strip().split(':')
             # print(line)

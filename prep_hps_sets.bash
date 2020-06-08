@@ -9,7 +9,7 @@ cd $maindir
 maindir=$(pwd)
 echo "Main dir $maindir"
 
-outdir=$maindir/lc_hp_sets
+outdir=$maindir/ps_hpo
 echo "Out dir $outdir"
 mkdir -p $outdir
 
