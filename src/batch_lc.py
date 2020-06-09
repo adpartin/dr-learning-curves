@@ -42,7 +42,6 @@ parser.add_argument('--par_jobs', default=1, type=int,
                     help=f'Number of joblib parallel jobs (default: 1).')
 args, other_args = parser.parse_known_args()
 
-
 # Number of parallel jobs
 par_jobs = int( args.par_jobs )
 assert par_jobs > 0, f"The arg 'par_jobs' must be at least 1 (got {par_jobs})"
@@ -84,7 +83,7 @@ else:
     # for i, split_id in enumerate(unq_split_ids[:n_splits]):
     # for i, s in enumerate( splits_arr[:n_splits] ):
     for s, r in zip( splits_arr[:n_splits], runs_arr[:n_splits] ):
-        print('Processing split {s}', s)
+        print(f'Processing split {s}')
         # run_split_ids(split_id, *other_args)
         other_args_run = other_args.copy()
         # other_args_run.extend(['--rout', f'run_{s}']) 

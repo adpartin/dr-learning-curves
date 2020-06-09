@@ -22,14 +22,10 @@ from scipy import optimize
 
 from pandas.api.types import is_string_dtype
 from sklearn.preprocessing import LabelEncoder
-# from sklearn.externals import joblib
 import joblib
 
 # Utils
 filepath = Path(__file__).resolve().parent
-# sys.path.append( os.path.abspath(filepath/'../ml') )
-# sys.path.append( os.path.abspath(filepath/'../utils') )
-# sys.path.append( os.path.abspath(filepath/'../datasplit') )
 
 from datasplit.splitter import data_splitter
 from ml.keras_utils import save_krs_history, plot_prfrm_metrics, r2_krs
@@ -316,6 +312,7 @@ class LearningCurve():
         runtime_records = []
 
         # CV loop
+        # import pdb; pdb.set_trace()
         for split_num in self.tr_dct.keys():
             self.print_fn(f'Split {split_num} out of {list(self.tr_dct.keys())}')    
 
@@ -365,6 +362,11 @@ class LearningCurve():
                     xtr_sub = self.data_prep_def(xtr_sub_df)
                     xvl = self.data_prep_def(xvl_df)
                     xte = self.data_prep_def(xte_df)
+                else:
+                    xtr_sub = np.asarray(xtr_sub_df)
+                    xvl = np.asarray(xvl_df)
+                    xte = np.asarray(xte_df)
+
 
                 # Get the estimator
                 model = self.ml_model_def( **self.ml_init_args )
@@ -403,15 +405,15 @@ class LearningCurve():
                 # ... training set
                 y_pred, y_true = calc_preds(model, x=xtr_sub, y=ytr_sub, mltype=self.mltype)
                 tr_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
-                dump_preds(y_true, y_pred, meta=mtr_sub, outpath=trn_outdir/'preds_tr.csv')
+                dump_preds(y_true, y_pred, meta=mtr_sub_df, outpath=trn_outdir/'preds_tr.csv')
                 # ... val set
                 y_pred, y_true = calc_preds(model, x=xvl, y=yvl, mltype=self.mltype)
                 vl_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
-                dump_preds(y_true, y_pred, meta=mvl, outpath=trn_outdir/'preds_vl.csv')
+                dump_preds(y_true, y_pred, meta=mvl_df, outpath=trn_outdir/'preds_vl.csv')
                 # ... test set
                 y_pred, y_true = calc_preds(model, x=xte, y=yte, mltype=self.mltype)
                 te_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
-                dump_preds(y_true, y_pred, meta=mte, outpath=trn_outdir/'preds_te.csv')
+                dump_preds(y_true, y_pred, meta=mte_df, outpath=trn_outdir/'preds_te.csv')
                 
                 # del estimator, model
                 del model

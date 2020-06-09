@@ -58,7 +58,7 @@ def model_callback_def(outdir, ref_metric='val_loss', **clr_kwargs):
     csv_logger = CSVLogger( outdir/'training.log' )
     reduce_lr = ReduceLROnPlateau( monitor=ref_metric, factor=0.75, patience=25, verbose=1,
                                    mode='auto', min_delta=0.0001, cooldown=3, min_lr=0.000000001 )
-    early_stop = EarlyStopping( monitor=ref_metric, patience=50, verbose=1, mode='auto' )
+    early_stop = EarlyStopping( monitor=ref_metric, patience=30, verbose=1, mode='auto' )
 
     if bool(clr_kwargs):
         clr = clr_keras_callback( **clr_kwargs )
@@ -249,7 +249,8 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # GE
     in_ge = Input(shape=(in_dim_ge,), name='in_ge')
-    units_ge = [1000, 500, 250]
+    # units_ge = [700, 500, 250] # v0
+    units_ge = [700, 550, 400] # v1
 
     x = layers.Dense(units_ge[0], kernel_initializer=initializer)(in_ge)
     if batchnorm:
@@ -274,7 +275,8 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # DD
     in_dd = Input(shape=(in_dim_dd,), name='in_dd')
-    units_dd = [1000, 500, 250]
+    # units_dd = [1000, 500, 250] # v0
+    units_dd = [1000, 750, 500] # v1
 
     x = layers.Dense(units_dd[0], kernel_initializer=initializer)(in_dd)
     if batchnorm:

@@ -198,7 +198,6 @@ def run(args):
         keras_callbacks_def = None
         keras_clr_kwargs = None
 
-    # elif args['ml']=='keras':
     elif args['ml'] == 'nn_reg0':
         # Keras model def
         from models.keras_model import nn_reg0_model_def, data_prep_nn_reg0_def,model_callback_def

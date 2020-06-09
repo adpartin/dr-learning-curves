@@ -2,6 +2,7 @@ from pathlib import Path
 import sklearn
 import numpy as np
 import pandas as pd
+from scipy.stats import pearsonr, spearmanr
 
 
 def calc_preds(model, x, y, mltype):
@@ -69,6 +70,8 @@ def calc_scores(y_true, y_pred, mltype, metrics=None):
         scores['mse']  = sklearn.metrics.mean_squared_error(y_true=y_true, y_pred=y_pred)
         scores['rmse'] = scores['mse'] ** 0.5
         # scores['auroc_reg'] = reg_auroc(y_true=y_true, y_pred=y_pred)
+        scores['spearmanr'] = spearmanr(y_true, y_pred)[0]
+        scores['pearsonr'] = pearsonr(y_true, y_pred)[0]
         
     scores['y_avg_true'] = np.mean(y_true)
     scores['y_avg_pred'] = np.mean(y_pred)

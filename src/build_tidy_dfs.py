@@ -50,16 +50,16 @@ CELL_META_FILENAME = 'combined_cancer_types'
 
 # Settings
 na_values = ['na', '-', '']
-fea_prfx_dct = {'rna': 'ge_', 'cnv': 'cnv_', 'snp': 'snp_',
-                'dsc': 'dd_', 'fng': 'fng_'}
+fea_prfx_dct = {'ge': 'ge_', 'cnv': 'cnv_', 'snp': 'snp_',
+                'dd': 'dd_', 'fng': 'fng_'}
 
-prfx_dtypes = {'rna': np.float32, 'cnv': np.int8, 'snp': np.int8,
-               'dsc': np.float32, 'fng': np.int8}
+prfx_dtypes = {'ge': np.float32, 'cnv': np.int8, 'snp': np.int8,
+               'dd': np.float32, 'fng': np.int8}
 
 
 def create_basename(args):
     """ Name to characterize the data. Can be used for dir name and file name. """
-    ls = args['drug_fea'] + args['cell_fea'] + [args['rna_norm']]
+    ls = args['drug_fea'] + args['cell_fea'] + [args['ge_norm']]
     if args['src'] is None:
         name = '.'.join( ls )
     else:
@@ -125,83 +125,83 @@ def load_rsp(filename, src=None, keep_bad=False, print_fn=print):
     return rsp
 
 
-def load_rna(datadir, rna_norm, print_fn=print, keep_cells_only=True, float_type=np.float32, impute=True):  
+def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=np.float32, impute=True):  
     """ Load RNA-Seq data. """
-    if rna_norm == 'raw':
+    if ge_norm == 'raw':
         fname = 'combined_rnaseq_data_lincs1000'
     else:
-        fname = f'combined_rnaseq_data_lincs1000_{rna_norm}'
+        fname = f'combined_rnaseq_data_lincs1000_{ge_norm}'
         
     print_fn(f'\nLoad RNA-Seq ... {datadir/fname}')
-    rna = pd.read_csv(Path(datadir)/fname, sep='\t', low_memory=False,
+    ge = pd.read_csv(Path(datadir)/fname, sep='\t', low_memory=False,
                       na_values=na_values, warn_bad_lines=True)
-    rna = rna.astype(dtype={c: float_type for c in rna.columns[1:]})  # Cast features
-    rna = rna.rename(columns={c: fea_prfx_dct['rna']+c for c in rna.columns[1:] if fea_prfx_dct['rna'] not in c}) # prefix rna gene names
-    rna.rename(columns={'Sample': 'CELL'}, inplace=True) # rename cell col name
-    # rna = rna.set_index(['CELL'])
+    ge = ge.astype(dtype={c: float_type for c in ge.columns[1:]})  # Cast features
+    ge = ge.rename(columns={c: fea_prfx_dct['ge']+c for c in ge.columns[1:] if fea_prfx_dct['ge'] not in c}) # prefix ge gene names
+    ge.rename(columns={'Sample': 'CELL'}, inplace=True) # rename cell col name
+    # ge = ge.set_index(['CELL'])
     
     cell_sources = ['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60']
-    idx = rna['CELL'].map(lambda s: s.split('.')[0].lower() in cell_sources)
-    rna = rna.loc[idx, :].reset_index(drop=True)
+    idx = ge['CELL'].map(lambda s: s.split('.')[0].lower() in cell_sources)
+    ge = ge.loc[idx, :].reset_index(drop=True)
 
     # Impute missing values
     if impute:
         print_fn('Impute NA values ...')
-        rna = impute_values(rna, print_fn=print_fn)
+        ge = impute_values(ge, print_fn=print_fn)
 
-    print_fn(f'rna.shape {rna.shape}')
-    return rna
+    print_fn(f'ge.shape {ge.shape}')
+    return ge
         
 
-def load_dsc(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
+def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
              impute=True, plot=True, outdir=None):  
     """ Load drug descriptors. """
     print_fn(f'\nLoad drug descriptors ... {DATADIR/filename}')
-    dsc = pd.read_csv(DATADIR/filename, sep='\t', low_memory=False,
+    dd = pd.read_csv(DATADIR/filename, sep='\t', low_memory=False,
                       na_values=na_values, warn_bad_lines=True)
-    dsc = dsc.astype(dtype={c: float_type for c in dsc.columns[1:]})  # Cast features
-    dsc = dsc.rename(columns={c: fea_prfx_dct['dsc']+c for c in dsc.columns[1:] if fea_prfx_dct['dsc'] not in c}) # prefix drug desc names
-    dsc.rename(columns={'NAME': 'DRUG'}, inplace=True)
+    dd = dd.astype(dtype={c: float_type for c in dd.columns[1:]})  # Cast features
+    dd = dd.rename(columns={c: fea_prfx_dct['dd']+c for c in dd.columns[1:] if fea_prfx_dct['dd'] not in c}) # prefix drug desc names
+    dd.rename(columns={'NAME': 'DRUG'}, inplace=True)
 
     # ------------------
     # Filter descriptors
     # ------------------
-    # dsc.nunique(dropna=True).value_counts()
-    # dsc.nunique(dropna=True).sort_values()
+    # dd.nunique(dropna=True).value_counts()
+    # dd.nunique(dropna=True).sort_values()
     print_fn('Drop descriptors with too many NA values ...')
     if plot and (outdir is not None):
-        plot_dsc_na_dist(dsc=dsc, savepath=Path(outdir)/'dsc_hist_ratio_of_na.png')
-    dsc = dropna(dsc, axis=1, th=dropna_th)
-    print_fn(f'dsc.shape {dsc.shape}')
-    # dsc.isna().sum().sort_values(ascending=False)
+        plot_dd_na_dist(dd=dd, savepath=Path(outdir)/'dd_hist_ratio_of_na.png')
+    dd = dropna(dd, axis=1, th=dropna_th)
+    print_fn(f'dd.shape {dd.shape}')
+    # dd.isna().sum().sort_values(ascending=False)
 
     # There are descriptors where there is a single unique value excluding NA (drop those)
     print_fn('Drop descriptors that have a single unique value (excluding NAs) ...')
-    col_idx = dsc.nunique(dropna=True).values==1
-    dsc = dsc.iloc[:, ~col_idx]
-    print_fn(f'dsc.shape {dsc.shape}')
+    col_idx = dd.nunique(dropna=True).values==1
+    dd = dd.iloc[:, ~col_idx]
+    print_fn(f'dd.shape {dd.shape}')
 
     # There are still lots of descriptors which have only a few unique values
     # we can categorize those values. e.g.: 564 descriptors have only 2 unique vals,
     # and 154 descriptors have only 3 unique vals, etc.
     # todo: use utility code from p1h_alex/utils/data_preproc.py that transform those
     # features into categorical and also applies an appropriate imputation.
-    # dsc.nunique(dropna=true).value_counts()[:10]
-    # dsc.nunique(dropna=true).value_counts().sort_index()[:10]
+    # dd.nunique(dropna=true).value_counts()[:10]
+    # dd.nunique(dropna=true).value_counts().sort_index()[:10]
 
     # Impute missing values
     if impute:
         print_fn('Impute NA values ...')
-        dsc = impute_values(data=dsc, print_fn=print_fn)
+        dd = impute_values(data=dd, print_fn=print_fn)
 
-    print_fn(f'dsc.shape {dsc.shape}')
-    return dsc
+    print_fn(f'dd.shape {dd.shape}')
+    return dd
 
 
-def plot_dsc_na_dist(dsc, savepath=None):
+def plot_dd_na_dist(dd, savepath=None):
     """ Plot distbirution of na values in drug descriptors. """
     fig, ax = plt.subplots()
-    sns.distplot(dsc.isna().sum(axis=0)/dsc.shape[0], bins=100, kde=False, hist_kws={'alpha': 0.7})
+    sns.distplot(dd.isna().sum(axis=0)/dd.shape[0], bins=100, kde=False, hist_kws={'alpha': 0.7})
     plt.xlabel('Ratio of total NA values in a descriptor to the total drug count')
     plt.ylabel('Total # of descriptors with the specified NA ratio')
     plt.title('Histogram of descriptors based on ratio of NA values')
@@ -209,7 +209,7 @@ def plot_dsc_na_dist(dsc, savepath=None):
     if savepath is not None:
         plt.savefig(savepath, bbox_inches='tight') # dpi=200
     else:
-        plt.savefig('dsc_hist_ratio_of_na.png', bbox_inches='tight') # dpi=200
+        plt.savefig('dd_hist_ratio_of_na.png', bbox_inches='tight') # dpi=200
         
 
 def dropna(df, axis=0, th=0.4):
@@ -260,13 +260,13 @@ def plot_rsp_dists(rsp, rsp_cols, savepath=None):
         
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Create tidy data.')
-    parser.add_argument('--drug_fea', type=str, nargs='+', choices=['dsc'], default=['dsc'], help='Default: [dsc].')
-    parser.add_argument('--cell_fea', type=str, nargs='+', choices=['rna'], default=['rna'], help='Default: [rna].')
-    parser.add_argument('--rna_norm', type=str, choices=['raw', 'combat', 'source_scale'], default='raw', help='Default: raw.')
+    parser.add_argument('--drug_fea', type=str, nargs='+', choices=['dd'], default=['dd'], help='Default: [dd].')
+    parser.add_argument('--cell_fea', type=str, nargs='+', choices=['ge'], default=['ge'], help='Default: [ge].')
+    parser.add_argument('--ge_norm', type=str, choices=['raw', 'combat', 'source_scale'], default='raw', help='Default: raw.')
     parser.add_argument('--gout', type=str, default=OUTDIR, help=f'Default: {OUTDIR}')
 
     parser.add_argument('--keep_bad', action='store_true', default=False, help='Default: False')
-    parser.add_argument('--dropna_th', type=float, default=0.4, help='Default: 0.4')
+    parser.add_argument('--dropna_th', type=float, default=0.05, help='Default: 0.05')
 
     parser.add_argument('--src', nargs='+', default=None,
                         choices=['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60'],
@@ -304,8 +304,8 @@ def run(args):
     #     Load response data, and features
     # -----------------------------------------------
     rsp = load_rsp(RSP_FILENAME, src=args['src'], keep_bad=args['keep_bad'], print_fn=print_fn)
-    rna = load_rna(DATADIR, rna_norm=args['rna_norm'], print_fn=print_fn, float_type=prfx_dtypes['rna'])
-    dsc = load_dsc(DSC_FILENAME, dropna_th=args['dropna_th'], print_fn=print_fn, float_type=prfx_dtypes['dsc'], outdir=outdir)
+    ge = load_ge(DATADIR, ge_norm=args['ge_norm'], print_fn=print_fn, float_type=prfx_dtypes['ge'])
+    dd = load_dd(DSC_FILENAME, dropna_th=args['dropna_th'], print_fn=print_fn, float_type=prfx_dtypes['dd'], outdir=outdir)
 
     # -----------------------------------------------
     #     Load cell and drug meta
@@ -341,19 +341,19 @@ def run(args):
     print_fn(f'data.shape  {data.shape}\n')
     print_fn(data.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
 
-    # Merge with rna
-    print_fn('\nMerge with expression (rna) ...')
-    data = pd.merge(data, rna, on='CELL', how='inner') # inner join to keep samples that have rna
+    # Merge with ge
+    print_fn('\nMerge with expression (ge) ...')
+    data = pd.merge(data, ge, on='CELL', how='inner') # inner join to keep samples that have ge
     print_fn(f'data.shape {data.shape}\n')
     print_fn(data.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
-    del rna
+    del ge
 
-    # Merge with dsc
-    print_fn('\nMerge with descriptors (dsc) ...')
-    data = pd.merge(data, dsc, on='DRUG', how='inner') # inner join to keep samples that have dsc
+    # Merge with dd
+    print_fn('\nMerge with descriptors (dd) ...')
+    data = pd.merge(data, dd, on='DRUG', how='inner') # inner join to keep samples that have dd
     print_fn(f'data.shape {data.shape}\n')
     print_fn(data.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
-    del dsc
+    del dd
 
     # Memory usage
     print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))
