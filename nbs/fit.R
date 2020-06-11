@@ -11,8 +11,9 @@ if(!require(dplyr)){
 # self-defined self-starting fct
 # for more details plz refer to 
 # Predicting accuracy on large datasets from smaller pilot data
-weightfn_selfstart = function (d) { d$training.examples }
-plaw_selfStart = selfStart(~ a + b*(x**(c-0.5)),
+weightfn_selfstart <- function (d) { d$training.examples }
+
+plaw_selfStart <- selfStart(~ a + b*(x**(c-0.5)),
                            function(mCall, data, LHS) {
                              xy = sortedXyData(mCall[["x"]], LHS, data);
                              d = xy %>% mutate(training.examples=x, error=y);
@@ -26,11 +27,13 @@ plaw_selfStart = selfStart(~ a + b*(x**(c-0.5)),
                            },
                            c("a","b","c"));
 
-bionomial = function (d) { d$training.examples/(d$error*(1-d$error))}
+bionomial <- function (d) {
+    d$training.examples/(d$error*(1-d$error))
+}
 
-get_model = function (data) {
+get_model <- function (data) {
   # eplaw models: error = a + b*training.examples^c
-  eplaw_models = data %>%
+  eplaw_models <- data %>%
     do(model = nls(error ~ plaw_selfStart(training.examples,a,b,c),
                    data=.,
                    control=nls.control(warnOnly=TRUE,maxiter=100000,tol=1e-4,minFactor=1e-7),
@@ -39,9 +42,9 @@ get_model = function (data) {
 }
 
 model_param <- function (x, y) {
-  data_train = do.call(rbind, Map(data.frame, 
+  data_train <- do.call(rbind, Map(data.frame, 
                                   training.examples=x, 
                                   error=y))
-  model = get_model(data_train)
+  model <- get_model(data_train)
   return (coef(model))
 }

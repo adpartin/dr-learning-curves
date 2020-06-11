@@ -21,8 +21,7 @@ def biased_powerlaw(x, alpha, beta, gamma):
 def fit_params(x, y) -> tuple:  
     x = robjects.IntVector(list(x))
     y = robjects.FloatVector(list(y))
-    # script = '\'fit.R\''
-    # script = '\'fit.R\''
+
     script = '\'../fit.R\''
     robjects.r('''source({})'''.format(script))
     get_params = robjects.globalenv['model_param']
@@ -30,8 +29,11 @@ def fit_params(x, y) -> tuple:
     
     # gamma, alpha, beta = get_params(x, y)
     prms_dct = {}
-    prms_dct = {}
-    prms_dct['alpha'], prms_dct['beta'], prms_dct['gamma'] = b, c-0.5, a
+    # prms_dct['alpha'], prms_dct['beta'], prms_dct['gamma'] = b, c-0.5, a
+    
+    prms_dct['alpha'] = b
+    prms_dct['beta'] = c-0.5
+    prms_dct['gamma'] = a
     # return (a, b, c-0.5)
     return prms_dct
     

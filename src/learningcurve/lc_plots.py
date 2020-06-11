@@ -165,7 +165,7 @@ def plot_lc(x, y, yerr=None, metric_name:str='score',
     if xlim is not None:  ax.set_ylim(xlim)
     if title is not None: ax.set_title(title)
     
-    # Location of legend --> https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot/43439132#43439132
+    # Legend loc --> stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot/43439132#43439132
     if label is not None:
         ax.legend(frameon=True, fontsize=legend_fontsize, bbox_to_anchor=(1.02, 1), loc='upper left')
     ax.grid(True)

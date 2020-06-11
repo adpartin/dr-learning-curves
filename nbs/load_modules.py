@@ -28,11 +28,11 @@ fpath = Path(__file__).resolve().parent
 sys.path.append( str(fpath/'../src') ) # must convert to str
 from learningcurve import lc_plots
 
-from fit import *
-import rpy2.robjects as robjects # TODO not sure we need this
-
-# from nls_lm import *
+# from fit import *
 # import rpy2.robjects as robjects # TODO not sure we need this
+
+# from nls_lm import fit_params, biased_powerlaw
+from nls_lm import fit_model, biased_powerlaw
 
 filepath = Path(os.getcwd())
 print(filepath)
