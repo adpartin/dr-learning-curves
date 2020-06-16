@@ -22,9 +22,9 @@ try:
         from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, ReduceLROnPlateau, EarlyStopping
         from tensorflow.keras.utils import plot_model
 
+        from tensorflow import keras
         from tensorflow.keras import backend as K
         from tensorflow.keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
-        from tensorflow import keras
         from tensorflow.keras import layers
         from tensorflow.keras import optimizers
         from tensorflow.keras.optimizers import SGD, Adam
@@ -68,85 +68,85 @@ def model_callback_def(outdir, ref_metric='val_loss', **clr_kwargs):
 
 
 # ---------------------------------------------------------
-class BaseKerasModel():
-    """ Parent class for Keras models. """
-    def build_dense_block(self, layers, inputs, batchnorm=True, name=None):
-        """ ... """
-        prfx = '' if name is None else f'{name}.'
-        x = inputs
+# class BaseKerasModel():
+#     """ Parent class for Keras models. """
+#     def build_dense_block(self, layers, inputs, batchnorm=True, name=None):
+#         """ ... """
+#         prfx = '' if name is None else f'{name}.'
+#         x = inputs
         
-        for i, l_size in enumerate(layers):
-            l_name = prfx + f'fc{i+1}.{l_size}'
-            x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(x)
-#             if i == 0:
-#                 x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(inputs)
-#             else:
-#                 x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(x)
-            if batchnorm:
-                x = BatchNormalization(name=prfx+f'bn{i+1}')(x)
-            x = Activation('relu', name=prfx+f'a{i+1}')(x)
-            x = Dropout(self.dr_rate, name=prfx+f'drp{i+1}.{self.dr_rate}')(x)        
-        return x      
+#         for i, l_size in enumerate(layers):
+#             l_name = prfx + f'fc{i+1}.{l_size}'
+#             x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(x)
+# #             if i == 0:
+# #                 x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(inputs)
+# #             else:
+# #                 x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(x)
+#             if batchnorm:
+#                 x = BatchNormalization(name=prfx+f'bn{i+1}')(x)
+#             x = Activation('relu', name=prfx+f'a{i+1}')(x)
+#             x = Dropout(self.dr_rate, name=prfx+f'drp{i+1}.{self.dr_rate}')(x)        
+#         return x      
 
-    def build_dense_res_block(self, inputs, stage:int, skips=1, batchnorm=True, name=None):
-        """ This function only applicable to keras NNs.
-        residual connection --> batchnorm --> activation
-        """
-        prfx = '' if name is None else f'{name}.'
-        x = inputs
-        x_bypass = x
+#     def build_dense_res_block(self, inputs, stage:int, skips=1, batchnorm=True, name=None):
+#         """ This function only applicable to keras NNs.
+#         residual connection --> batchnorm --> activation
+#         """
+#         prfx = '' if name is None else f'{name}.'
+#         x = inputs
+#         x_bypass = x
         
-        for i in range(skips):
-            l_size = int(x.get_shape()[-1])
-            l_name = prfx + f'res{stage}_fc{i+1}.{l_size}'
-            x = Dense(l_size, kernel_initializer=self.initializer)(x)
+#         for i in range(skips):
+#             l_size = int(x.get_shape()[-1])
+#             l_name = prfx + f'res{stage}_fc{i+1}.{l_size}'
+#             x = Dense(l_size, kernel_initializer=self.initializer)(x)
                     
-            if batchnorm:
-                x = BatchNormalization()(x)
-            # x = Activation('relu', name=prfx+f'a{i+1}')(x)
-            x = Activation('relu')(x)
-            # x = Dropout(self.dr_rate)(x)        
-        x = keras.layers.add([x_bypass, x], name=prfx+f'res_conn{stage}')
-        if batchnorm:
-            x = BatchNormalization()(x)
+#             if batchnorm:
+#                 x = BatchNormalization()(x)
+#             # x = Activation('relu', name=prfx+f'a{i+1}')(x)
+#             x = Activation('relu')(x)
+#             # x = Dropout(self.dr_rate)(x)        
+#         x = keras.layers.add([x_bypass, x], name=prfx+f'res_conn{stage}')
+#         if batchnorm:
+#             x = BatchNormalization()(x)
                 
-        x = Activation('relu')(x)    
-        x = Dropout(self.dr_rate)(x)        
-        return x
+#         x = Activation('relu')(x)    
+#         x = Dropout(self.dr_rate)(x)        
+#         return x
     
-    def get_optimizer(self):
-        if self.opt_name == 'sgd':
-            opt = SGD(lr=self.lr, momentum=0.9) # lr=1e-4
-        elif self.opt_name == 'adam':
-            opt = Adam(lr=self.lr, beta_1=0.9, beta_2=0.999,
-                       epsilon=None, decay=0.0, amsgrad=False) # lr=1e-3
-        else:
-            opt = SGD(lr=self.lr, momentum=0.9) # for clr # lr=1e-4
-        return opt
+#     def get_optimizer(self):
+#         if self.opt_name == 'sgd':
+#             opt = SGD(lr=self.lr, momentum=0.9) # lr=1e-4
+#         elif self.opt_name == 'adam':
+#             opt = Adam(lr=self.lr, beta_1=0.9, beta_2=0.999,
+#                        epsilon=None, decay=0.0, amsgrad=False) # lr=1e-3
+#         else:
+#             opt = SGD(lr=self.lr, momentum=0.9) # for clr # lr=1e-4
+#         return opt
 
 
-class NN_REG0(BaseKerasModel):
-    """ Dense NN regressor. """
-    model_name = 'nn_reg0'
+# class NN_REG0(BaseKerasModel):
+#     """ Dense NN regressor. """
+#     model_name = 'nn_reg0'
 
-    def __init__(self, input_dim, dr_rate=0.2, opt_name='sgd', lr=0.001,
-                 initializer='he_uniform', batchnorm=False):
-        self.input_dim = input_dim
-        self.dr_rate = dr_rate
-        self.opt_name = opt_name.lower()
-        self.initializer = initializer.lower()
-        self.lr = lr
+#     def __init__(self, input_dim, dr_rate=0.2, opt_name='sgd', lr=0.001,
+#                  initializer='he_uniform', batchnorm=False):
+#         self.input_dim = input_dim
+#         self.dr_rate = dr_rate
+#         self.opt_name = opt_name.lower()
+#         self.initializer = initializer.lower()
+#         self.lr = lr
 
-        layers = [1000, 1000, 500, 250, 125, 60, 30]
-        inputs = Input(shape=(self.input_dim,), name='inputs')
-        x = self.build_dense_block(layers, inputs, batchnorm=batchnorm)
+#         layers = [1000, 1000, 500, 250, 125, 60, 30]
+#         inputs = Input(shape=(self.input_dim,), name='inputs')
+#         x = self.build_dense_block(layers, inputs, batchnorm=batchnorm)
 
-        outputs = Dense(1, activation='relu', name='outputs')(x)
-        model = Model(inputs=inputs, outputs=outputs)
+#         outputs = Dense(1, activation='relu', name='outputs')(x)
+#         model = Model(inputs=inputs, outputs=outputs)
         
-        opt = self.get_optimizer()
-        model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae']) # r2_krs 
-        self.model = model
+#         opt = self.get_optimizer()
+#         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae']) # r2_krs 
+#         self.model = model
 
 
 # ----------------------------------------------------------------
@@ -166,7 +166,8 @@ def nn_reg0_model_def(input_dim:int,
     """
     initializer='he_uniform'
         
-    units = [1000, 1000, 500, 250, 125, 60, 30]
+    # units = [1000, 1000, 500, 250, 125, 60, 30] # original
+    units = [1000, 1000, 500, 250, 125] # fair
     inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
 
     x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
@@ -175,6 +176,81 @@ def nn_reg0_model_def(input_dim:int,
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
         
+    # x = layers.Dense(units[0], activation='relu', kernel_initializer=initializer)(inputs)
+    # x = layers.Dense(units[0], activation='relu', kernel_initializer=initializer)(x)
+
+    x = layers.Dense(units[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[3], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units[4], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    # x = layers.Dense(units[5], kernel_initializer=initializer)(x)
+    # if batchnorm:
+    #     x = layers.BatchNormalization()(x)
+    # x = layers.Activation('relu')(x)
+    # x = layers.Dropout(dr_rate)(x)        
+        
+    # x = layers.Dense(units[6], kernel_initializer=initializer)(x)
+    # if batchnorm:
+    #     x = layers.BatchNormalization()(x)
+    # x = layers.Activation('relu')(x)
+    # x = layers.Dropout(dr_rate)(x)        
+        
+    outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    
+    if opt_name.lower()=='adam':
+        opt = keras.optimizers.Adam(learning_rate)
+    else:
+        opt = keras.optimizers.SGD(learning_rate, momentum=0.9)
+    model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+    return model
+
+
+# ------------------------------------------------------------
+def nn_attn0_model_def(input_dim:int,
+                      batchnorm:bool=False, dr_rate:float=0.2,
+                      learning_rate:float=0.001, opt_name:str='adam',
+                      **kwargs):
+    """
+    Create the Keras model. This is func is required in lrn_crv.py.
+    **kwargs is used to ignore irrelevant arguments passed hps_set
+    of keras-tuner.
+    """
+    initializer='he_uniform'
+        
+    units = [1000, 1000, 500, 250, 125, 60, 30]
+    inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
+
+    # x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
+    # if batchnorm:
+    #     x = layers.BatchNormalization()(x)
+    # x = layers.Activation('relu')(x)
+    # x = layers.Dropout(dr_rate)(x)        
+        
+    a = layers.Dense(units[0], activation='relu', kernel_initializer=initializer)(inputs)
+    b = layers.Dense(units[0], activation='softmax', kernel_initializer=initializer)(inputs)
+    x = layers.multiply([a, b])
+
     x = layers.Dense(units[1], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
@@ -223,7 +299,7 @@ def nn_reg0_model_def(input_dim:int,
 
 
 # ------------------------------------------------------------
-def data_prep_nn_reg0_def(xdata):
+def data_prep_nn0_def(xdata):
     """
     This func prepare the dataset for keras model.
     This function works in a similar way as DataLoader
@@ -249,22 +325,16 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # GE
     in_ge = Input(shape=(in_dim_ge,), name='in_ge')
-    # units_ge = [700, 500, 250] # v0
-    units_ge = [700, 550, 400] # v1
+    # units_ge = [700, 550] # original
+    units_ge = [800, 500] # fair
 
-    x = layers.Dense(units_ge[0], kernel_initializer=initializer)(in_ge)
+    x = layers.Dense(units_ge[0], kernel_initializer=initializer, name='g_dense_0')(in_ge)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
         
-    x = layers.Dense(units_ge[1], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-    x = layers.Dropout(dr_rate)(x)        
-        
-    x = layers.Dense(units_ge[2], kernel_initializer=initializer)(x)
+    x = layers.Dense(units_ge[1], kernel_initializer=initializer, name='g_dense_1')(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
@@ -275,22 +345,16 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # DD
     in_dd = Input(shape=(in_dim_dd,), name='in_dd')
-    # units_dd = [1000, 500, 250] # v0
-    units_dd = [1000, 750, 500] # v1
+    # units_dd = [1000, 750] # original
+    units_dd = [1000, 700] # fair
 
-    x = layers.Dense(units_dd[0], kernel_initializer=initializer)(in_dd)
+    x = layers.Dense(units_dd[0], kernel_initializer=initializer, name='d_dense_0')(in_dd)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
         
-    x = layers.Dense(units_dd[1], kernel_initializer=initializer)(x)
-    if batchnorm:
-        x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-    x = layers.Dropout(dr_rate)(x)        
-        
-    x = layers.Dense(units_dd[2], kernel_initializer=initializer)(x)
+    x = layers.Dense(units_dd[1], kernel_initializer=initializer, name='d_dense_1')(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
@@ -301,7 +365,106 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # Merge towers
     mrg = layers.concatenate([ge.output, dd.output], axis=1)
-    units_mrg = [250, 125, 60, 30]
+    # units_mrg = [1000, 500, 250, 125] # original
+    units_mrg = [500, 250, 125] # fair
+
+    x = layers.Dense(units_mrg[0], kernel_initializer=initializer)(mrg)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_mrg[1], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    x = layers.Dense(units_mrg[2], kernel_initializer=initializer)(x)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    # x = layers.Dense(units_mrg[3], kernel_initializer=initializer)(x)
+    # if batchnorm:
+    #     x = layers.BatchNormalization()(x)
+    # x = layers.Activation('relu')(x)
+    # x = layers.Dropout(dr_rate)(x)        
+
+    # ---------------------
+    # Output
+    outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+    
+    # ---------------------
+    # Input --> Output
+    model = Model(inputs=[in_ge, in_dd], outputs=[outputs])
+    
+    if opt_name.lower()=='adam':
+        opt = keras.optimizers.Adam(learning_rate)
+    else:
+        opt = keras.optimizers.SGD(learning_rate, momentum=0.9)
+    model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+    return model
+
+
+# ----------------------------------------------------------------
+def nn_attn1_model_def(in_dim_ge:int, in_dim_dd:int,
+                      batchnorm:bool=False, dr_rate:float=0.2,
+                      learning_rate:float=0.001, opt_name:str='adam',
+                      **kwargs):
+    """
+    Create the Keras model. This is func is required in lrn_crv.py.
+    **kwargs is used to ignore irrelevant arguments passed hps_set
+    of keras-tuner.
+    """
+    initializer='he_uniform'
+        
+    # ---------------------
+    # GE
+    in_ge = Input(shape=(in_dim_ge,), name='in_ge')
+    # units_ge = [700, 500, 250] # v0
+    # units_ge = [700, 550, 400] # v1
+    units_ge = [700, 550] # v1
+
+    x = layers.Dense(units_ge[0], kernel_initializer=initializer, name='g_dense_0')(in_ge)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    # attn
+    a = layers.Dense(units_ge[1], activation='relu', kernel_initializer=initializer, name='g_attn_a')(x)
+    b = layers.Dense(units_ge[1], activation='softmax', kernel_initializer=initializer, name='g_attn_b')(x)
+    out_ge = layers.multiply([a, b])
+        
+    ge = Model(inputs=in_ge, outputs=out_ge, name=f'out_ge')
+
+    # ---------------------
+    # DD
+    in_dd = Input(shape=(in_dim_dd,), name='in_dd')
+    # units_dd = [1000, 500, 250] # v0
+    # units_dd = [1000, 750, 500] # v1
+    units_dd = [1000, 750] # v1
+
+    x = layers.Dense(units_dd[0], kernel_initializer=initializer, name='d_dense_0')(in_dd)
+    if batchnorm:
+        x = layers.BatchNormalization()(x)
+    x = layers.Activation('relu')(x)
+    x = layers.Dropout(dr_rate)(x)        
+        
+    # attn
+    a = layers.Dense(units_dd[1], activation='relu', kernel_initializer=initializer, name='d_attn_a')(x)
+    b = layers.Dense(units_dd[1], activation='softmax', kernel_initializer=initializer, name='d_attn_b')(x)
+    out_dd = layers.multiply([a, b])
+        
+    dd = Model(inputs=in_dd, outputs=out_dd, name=f'out_dd')
+
+    # ---------------------
+    # Merge towers
+    mrg = layers.concatenate([ge.output, dd.output], axis=1)
+    # units_mrg = [250, 125, 60, 30]
+    units_mrg = [1000, 500, 250, 125]
 
     x = layers.Dense(units_mrg[0], kernel_initializer=initializer)(mrg)
     if batchnorm:
@@ -344,7 +507,7 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
 
 
 # ------------------------------------------------------------
-def data_prep_nn_reg1_def(xdata):
+def data_prep_nn1_def(xdata):
     """
     This func prepare the dataset for keras model.
     This function works in a similar way as DataLoader

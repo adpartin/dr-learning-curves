@@ -73,7 +73,8 @@ def parse_args(args):
     parser.add_argument('--plot_fit', action='store_true', help='Whether to generate the fit (default: False).')
 
     # HPs
-    parser.add_argument('--ml', default='lgb', type=str, choices=['lgb', 'nn_reg0', 'nn_reg1'],
+    parser.add_argument('--ml', default='lgb', type=str,
+                        choices=['lgb', 'nn_reg0', 'nn_reg1', 'nn_attn0', 'nn_attn1'],
                         help='Choose ML model (default: lgb).')
     parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
     parser.add_argument('--batch_size', default=64, type=int, help='Batch size (default: 64).')
@@ -198,13 +199,21 @@ def run(args):
         keras_callbacks_def = None
         keras_clr_kwargs = None
 
-    elif args['ml'] == 'nn_reg0':
+    # elif args['ml'] == 'nn_reg0':
+    elif (args['ml'] == 'nn_reg0') or (args['ml'] == 'nn_attn0'):
         # Keras model def
-        from models.keras_model import nn_reg0_model_def, data_prep_nn_reg0_def,model_callback_def
+        if (args['ml'] == 'nn_reg0'):
+            from models.keras_model import nn_reg0_model_def, data_prep_nn0_def, model_callback_def
+            ml_model_def = nn_reg0_model_def
+            data_prep_def = data_prep_nn0_def
+        if (args['ml'] == 'nn_attn0'):
+            from models.keras_model import nn_attn0_model_def, data_prep_nn0_def, model_callback_def
+            ml_model_def = nn_attn0_model_def
+            data_prep_def = data_prep_nn0_def
         framework = 'keras'
         mltype = 'reg'
-        ml_model_def = nn_reg0_model_def
-        data_prep_def = data_prep_nn_reg0_def
+        # ml_model_def = nn_reg0_model_def
+        # data_prep_def = data_prep_nn_reg0_def
         keras_callbacks_def = model_callback_def
         if (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = {'input_dim': xdata.shape[1],
@@ -218,12 +227,20 @@ def run(args):
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
         # model = ml_model_def(**ml_init_kwargs)
 
-    elif args['ml'] == 'nn_reg1':
-        from models.keras_model import nn_reg1_model_def, data_prep_nn_reg1_def, model_callback_def
+    # elif args['ml'] == 'nn_reg1':
+    elif (args['ml'] == 'nn_reg1') or (args['ml'] == 'nn_attn1'):
+        if (args['ml'] == 'nn_reg1'):
+            from models.keras_model import nn_reg1_model_def, data_prep_nn1_def, model_callback_def
+            ml_model_def = nn_reg1_model_def
+            data_prep_def = data_prep_nn1_def
+        if (args['ml'] == 'nn_attn1'):
+            from models.keras_model import nn_attn1_model_def, data_prep_nn1_def, model_callback_def
+            ml_model_def = nn_attn1_model_def
+            data_prep_def = data_prep_nn1_def
         framework = 'keras'
         mltype = 'reg'
-        ml_model_def = nn_reg1_model_def
-        data_prep_def = data_prep_nn_reg1_def
+        # ml_model_def = nn_reg1_model_def
+        # data_prep_def = data_prep_nn1_def
         keras_callbacks_def = model_callback_def
         x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
         x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
@@ -235,7 +252,13 @@ def run(args):
         ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
                          'verbose': 1}
         keras_clr_kwargs = {}
-        # model = ml_model_def(**ml_init_kwargs)
+
+    # import pdb; pdb.set_trace()
+    model = ml_model_def(**ml_init_kwargs)
+    model.summary( print_fn=lg.logger.info )
+    from tensorflow.keras.utils import plot_model
+    plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
+    del model
 
     # Pre-determined HPs
     if ps_hpo_dir is not None:

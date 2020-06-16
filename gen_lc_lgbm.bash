@@ -17,8 +17,8 @@ echo "Processing source: $SOURCE"
 echo "Parallel jobs: $PAR_JOBS"
 
 python src/batch_lc.py \
-    -dp data/ml.dfs/data.$SOURCE.dsc.rna.raw/data.$SOURCE.dsc.rna.raw.parquet \
-    -sd data/ml.dfs/data.$SOURCE.dsc.rna.raw/data.$SOURCE.dsc.rna.raw.splits \
+    -dp data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet \
+    -sd data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits \
     -ns 120 \
     --fea_prfx ge dd --fea_sep _ -t AUC \
     --ml $MODEL \

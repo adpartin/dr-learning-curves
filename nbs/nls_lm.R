@@ -23,18 +23,6 @@ if(!require(minpack.lm)){
   library(minpack.lm)
 }
 
-# add_weight_col <- function(data, type='binomial') {
-#   if (type=='binomial') {
-#     data$w <- data$x / (data$y * ( 1 - data$y )) # bionomial 
-#   } else if (type=='size') {
-#     data$w <- data$x # by sample size
-#     data$w <- data$w/max(data$w) # TODO: should we normalize weights??
-#   } else if (type=='none') {  
-#     data$w <- rep(x=1.0, times=length(data$x)) # constant weight
-#   }
-#   return (data)
-# }
-
 
 summary_coefs <- function(model) {
   coefs <- data.frame(unclass(summary(model))$parameters,
@@ -73,9 +61,22 @@ fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.5, c=0.06)
     data = dfit)
   
   coef_est <- summary_coefs(model)
-  return(coef_est)   # this doesn't works!!
+  return(coef_est)
 }
 
+
+# add_weight_col <- function(data, type='binomial') {
+#   if (type=='binomial') {
+#     data$w <- data$x / (data$y * ( 1 - data$y )) # bionomial 
+#   } else if (type=='size') {
+#     data$w <- data$x # by sample size
+#     data$w <- data$w/max(data$w) # TODO: should we normalize weights??
+#   } else if (type=='none') {  
+#     data$w <- rep(x=1.0, times=length(data$x)) # constant weight
+#   }
+#   return (data)
+# }
+                  
 # ------------------------------------------------------------------------
 
 

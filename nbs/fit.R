@@ -11,7 +11,9 @@ if(!require(dplyr)){
 # self-defined self-starting fct
 # for more details plz refer to 
 # Predicting accuracy on large datasets from smaller pilot data
-weightfn_selfstart <- function (d) { d$training.examples }
+weightfn_selfstart <- function(d) {
+    d$training.examples
+}
 
 plaw_selfStart <- selfStart(~ a + b*(x**(c-0.5)),
                            function(mCall, data, LHS) {
@@ -27,24 +29,37 @@ plaw_selfStart <- selfStart(~ a + b*(x**(c-0.5)),
                            },
                            c("a","b","c"));
 
-bionomial <- function (d) {
+bionomial <- function(d) {
     d$training.examples/(d$error*(1-d$error))
 }
 
-get_model <- function (data) {
+get_model <- function(data) {
   # eplaw models: error = a + b*training.examples^c
   eplaw_models <- data %>%
-    do(model = nls(error ~ plaw_selfStart(training.examples,a,b,c),
+    do(model = nls(error ~ plaw_selfStart(training.examples, a, b, c),
                    data=.,
                    control=nls.control(warnOnly=TRUE,maxiter=100000,tol=1e-4,minFactor=1e-7),
                    weights=bionomial(.)));
   return(eplaw_models$model[[1]])
 }
 
-model_param <- function (x, y) {
+model_param <- function(x, y) {
   data_train <- do.call(rbind, Map(data.frame, 
                                   training.examples=x, 
                                   error=y))
   model <- get_model(data_train)
   return (coef(model))
+
+#   coef_est <- summary_coefs(model)
+#   return(coef_est)  
 }
+
+# summary_coefs <- function(model) {
+#   # (ap) This is from nls_lm.R
+#   coefs <- data.frame(unclass(summary(model))$parameters,
+#                       check.names=FALSE, stringsAsFactors=FALSE)
+#   colnames(coefs) <- c('est', 'se', 't_val', 'p_val')
+#   coefs <- tibble::rownames_to_column(coefs, var='coef')
+#   rownames(coefs) <- NULL
+#   return(coefs)
+# }

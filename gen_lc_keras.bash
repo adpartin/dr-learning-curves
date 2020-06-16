@@ -4,9 +4,10 @@ OUTDIR=lc.out
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
-# lc_sizes=12
-lc_sizes=4
-EPOCH=400
+lc_sizes=12
+# lc_sizes=4
+# EPOCH=400
+EPOCH=500
 
 # # PS-HPO
 # SOURCE=$1
@@ -61,7 +62,7 @@ python src/main_lc.py \
     -t AUC -sc stnd --ml $MODEL \
     --batch_size 64 --epoch $EPOCH \
     --batchnorm \
-    --lc_sizes_arr 88416 \
     --gout $OUTDIR/lc_${SOURCE}_${MODEL}_default \
     --lc_sizes $lc_sizes \
 
+    # --lc_sizes_arr 88416 \

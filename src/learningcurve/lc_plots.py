@@ -109,16 +109,17 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
     ax = None
     ax = plot_lc(
         x=df['tr_size'], y=df['score'], yerr=None,
-        ax=ax, ls='', marker='.', alpha=0.7, metric_name=metric_name,
-        **plot_args, color='b', label='All scores');
+        metric_name=metric_name, label='All scores',
+        ax=ax, **plot_args);
 
     # Plot median
     if plot_median:
         aa = df.groupby(['metric', 'tr_size']).agg({'score': 'median'}).reset_index().rename(columns={'score': 'median'})
         ax = plot_lc(
             x=aa['tr_size'], y=aa['median'], yerr=None,
-            ax=ax, ls='--', marker='.', alpha=0.7, metric_name=metric_name,
-            **plot_args, color='r', label='Median');
+            ls='--', marker='.', alpha=0.7, color='r',
+            metric_name=metric_name, label='Median', 
+            ax=ax, **plot_args);
 
     ax.tick_params(axis='both', labelsize=11)
     ax = set_yticks(ax)
@@ -128,9 +129,11 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
 def plot_lc(x, y, yerr=None, metric_name:str='score',
             xtick_scale:str='log2', ytick_scale:str='log2',
             xlim:list=None, ylim:list=None, title:str=None, figsize=(7,5),
-            ls='-', marker='.', color=None, alpha=0.7, label:str=None, ax=None):
+            ls='', marker='.', 
+            color='b', markerfacecolor=None, markeredgecolor=None, alpha=0.7,
+            label:str=None, ax=None):
     """
-    Note! The previous name of this func is plot_lrn_crv_new()
+    NOTE! The previous name of this func is plot_lrn_crv_new()
     This function takes train set size in x and score in y, and generates a learning curve plot.
     Returns:
         ax : ax handle from existing plot (this allows to plot results from different runs for comparison)
@@ -143,6 +146,10 @@ def plot_lc(x, y, yerr=None, metric_name:str='score',
     legend_fontsize = 10
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
+    
+    if (markerfacecolor is None) & (markeredgecolor is None):
+        markerfacecolor = color
+        markeredgecolor = color
     
     # Plot raw data
     if yerr is None:
@@ -169,6 +176,9 @@ def plot_lc(x, y, yerr=None, metric_name:str='score',
     if label is not None:
         ax.legend(frameon=True, fontsize=legend_fontsize, bbox_to_anchor=(1.02, 1), loc='upper left')
     ax.grid(True)
+    
+    ax.tick_params(axis='both', labelsize=11)
+    ax = set_yticks(ax)
     return ax
 # ----------------------------------------------------------------------
 
