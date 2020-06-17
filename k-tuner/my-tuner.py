@@ -24,9 +24,9 @@ from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
-MAX_TRIALS = 100
+MAX_TRIALS = 50
 EXECUTIONS_PER_TRIAL = 1
-EPOCHS = 20
+EPOCHS = 40
 OBJECTIVE = 'val_mae'
 
 def get_data(datapath, seed=None, tr_sz=None):
@@ -37,8 +37,8 @@ def get_data(datapath, seed=None, tr_sz=None):
     # Get features (x), target (y), and meta
     # fea_list = ['GE', 'DD']
     # fea_sep = '_'
-    fea_list = ['ge', 'dsc']
-    fea_sep = '.'
+    fea_list = ['ge', 'dd']
+    fea_sep = '_'
     xdata = extract_subset_fea(data, fea_list=fea_list, fea_sep=fea_sep)
     meta = data.drop( columns=xdata.columns )
     ydata = meta[[ trg_name ]]
@@ -76,21 +76,22 @@ def get_data(datapath, seed=None, tr_sz=None):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--source', type=str, default='ccle')
+parser.add_argument('--source', type=str, default='gdsc')
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--sz', type=int, default=None)
+parser.add_argument('--ml', type=int, default='nn0', choices=['nn0', 'nn1'])
 args = parser.parse_args()
 
 # import pdb; pdb.set_trace()
 DATADIR = fpath/'../data/ml.dfs'
-datapath = DATADIR/f'data.{args.source}.dsc.rna.raw/data.{args.source}.dsc.rna.raw.parquet'
+datapath = DATADIR/f'data.{args.source}.dd.ge.raw/data.{args.source}.dd.ge.raw.parquet'
 
 print_fn = print
-source = [str(s) for s in ['ccle', 'gdsc', 'ctrp'] if s in str(datapath)][0]
+source = [str(s) for s in ['gdsc', 'ctrp'] if s in str(datapath)][0]
 if source is None:
     outdir = fpath/'out'
 else:
-    outdir = fpath/f'{source}_tuner_out'
+    outdir = fpath/f'{source}_{args.ml}_tuner_out'
 os.makedirs(outdir, exist_ok=True)
 
 xtr, ytr, xvl, yvl = get_data(datapath, seed=args.seed, tr_sz=args.sz)
@@ -101,7 +102,84 @@ tr_sz = xtr.shape[0]
 - It returns a compiled model
 - It uses hyperparameters defined on the fly
 """
-class MyHyperModel(HyperModel):
+# class MyHyperModel(HyperModel):
+
+#     def __init__(self, input_dim=None, batchnorm=False, initializer='he_uniform'):
+#         self.input_dim = input_dim
+#         self.initializer = initializer
+
+#     # def build_model(self, hp):
+#     def build(self, hp):
+#     # def build_model():
+#         # initializer='he_uniform'
+#         # batchnorm=False
+#         # input_dim=3762
+#         input_dim = self.input_dim
+#         initializer = self.initializer
+
+#         inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
+
+#         # HPs
+#         hp_dr_rate = hp.Float('dr_rate', min_value=0.0, max_value=0.5,
+#                                default=0.25, step=0.05)
+
+#         batchnorm = hp.Boolean('batchnorm', default=False) 
+
+#         units = [1000, 1000, 500, 250, 125, 60, 30]
+#         x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[1], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[2], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[3], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[4], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[5], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         x = layers.Dense(units[6], kernel_initializer=initializer)(x)
+#         if batchnorm:
+#             x = layers.BatchNormalization()(x)
+#         x = layers.Activation('relu')(x)
+#         x = layers.Dropout(hp_dr_rate)(x)        
+            
+#         outputs = layers.Dense(1, activation='relu', name='outputs')(x)
+#         model = keras.Model(inputs=inputs, outputs=outputs)
+        
+#         # opt = keras.optimizers.Adam(learning_rate=0.0001)
+#         hp_lr = hp.Float('learning_rate', min_value=1e-4, max_value=1e-3, sampling='LOG', default=1e-4)
+#         # hp_lr = hp.Choice('learning_rate', [1e-4, 1e-3])
+#         opt = keras.optimizers.Adam( hp_lr )
+#         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
+#         return model
+
+# ------------------------------------------------------------
+class HyModelNN0(HyperModel):
 
     def __init__(self, input_dim=None, batchnorm=False, initializer='he_uniform'):
         self.input_dim = input_dim
@@ -110,21 +188,20 @@ class MyHyperModel(HyperModel):
     # def build_model(self, hp):
     def build(self, hp):
     # def build_model():
-        # initializer='he_uniform'
-        # batchnorm=False
-        # input_dim=3762
         input_dim = self.input_dim
         initializer = self.initializer
 
         inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
 
         # HPs
-        hp_dr_rate = hp.Float('dr_rate', min_value=0.0, max_value=0.5,
-                               default=0.25, step=0.05)
+        hp_dr_rate = hp.Float('dr_rate', min_value=0.0, max_value=0.4,
+                               default=0.20, step=0.05)
 
-        batchnorm = hp.Boolean('batchnorm', default=False) 
+        # batchnorm = hp.Boolean('batchnorm', default=False) 
+        batchnorm = True
 
-        units = [1000, 1000, 500, 250, 125, 60, 30]
+        # units = [1000, 1000, 500, 250, 125, 60, 30] # original
+        units = [1000, 1000, 500, 250, 125] # fair
         x = layers.Dense(units[0], kernel_initializer=initializer)(inputs)
         if batchnorm:
             x = layers.BatchNormalization()(x)
@@ -155,32 +232,24 @@ class MyHyperModel(HyperModel):
         x = layers.Activation('relu')(x)
         x = layers.Dropout(hp_dr_rate)(x)        
             
-        x = layers.Dense(units[5], kernel_initializer=initializer)(x)
-        if batchnorm:
-            x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
-        x = layers.Dropout(hp_dr_rate)(x)        
-            
-        x = layers.Dense(units[6], kernel_initializer=initializer)(x)
-        if batchnorm:
-            x = layers.BatchNormalization()(x)
-        x = layers.Activation('relu')(x)
-        x = layers.Dropout(hp_dr_rate)(x)        
-            
         outputs = layers.Dense(1, activation='relu', name='outputs')(x)
         model = keras.Model(inputs=inputs, outputs=outputs)
         
         # opt = keras.optimizers.Adam(learning_rate=0.0001)
-        hp_lr = hp.Float('learning_rate', min_value=1e-4, max_value=1e-3, sampling='LOG', default=1e-4)
+        hp_lr = hp.Float('learning_rate', min_value=1e-4, max_value=1e-2,
+                         sampling='LOG', default=1e-3)
         # hp_lr = hp.Choice('learning_rate', [1e-4, 1e-3])
         opt = keras.optimizers.Adam( hp_lr )
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
         return model
+# ------------------------------------------------------------
 
 # model = build_model()
 # model.fit(xtr, ytr, epochs=10, batch_size=32, verbose=1)
 
-hypermodel = MyHyperModel( input_dim=xtr.shape[1] )
+## hypermodel = MyHyperModel( input_dim=xtr.shape[1] )
+hypermodel = HyModelNN0( input_dim=xtr.shape[1] )
+# hypermodel = HyModelNN1( input_dim=xtr.shape[1] )
 
 # import pdb; pdb.set_trace()
 # keras-team.github.io/keras-tuner/tutorials/distributed-tuning/
