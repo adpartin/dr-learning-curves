@@ -305,7 +305,7 @@ class HyModelNN1(HyperModel):
 # model.fit(xtr, ytr, epochs=10, batch_size=32, verbose=1)
 
 if args.ml == 'nn0':
-    hypermodel = HyModelNN0( input_dim=xtr.shape[1] )
+    hypermodel = HyModelNN0( input_dim=xtr['inputs'].shape[1] )
 elif args.ml == 'nn1':
     hypermodel = HyModelNN1( in_dim_ge=xtr['in_ge'].shape[1],
                              in_dim_dd=xtr['in_dd'].shape[1] )
