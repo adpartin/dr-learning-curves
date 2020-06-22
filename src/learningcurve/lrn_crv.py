@@ -312,7 +312,6 @@ class LearningCurve():
         runtime_records = []
 
         # CV loop
-        # import pdb; pdb.set_trace()
         for split_num in self.tr_dct.keys():
             self.print_fn(f'Split {split_num} out of {list(self.tr_dct.keys())}')    
 
@@ -347,16 +346,19 @@ class LearningCurve():
                 ytr_sub = np.asarray( ytr_sub_df )                
 
                 # HP set per tr size
+                # import pdb; pdb.set_trace()
                 if self.hp_sizes is not None:
                     # files = glob( str(self.ps_hpo_dir/'tr_sz*') )
                     # hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
                     # hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
                     keys_vec = list( self.hp_sizes.keys() ) 
                     idx_min = np.argmin( np.abs( keys_vec - tr_sz ) )
-                    hp_path = self.hp_sizes[ keys_vec[0] ]
+                    hp_path = self.hp_sizes[ keys_vec[idx_min] ]
                     hp_path = hp_path/'best_hps.txt'
-                    self.ml_init_args = read_hp_prms( hp_path )
-                    self.ml_init_args['input_dim'] = xtr_sub.shape[1] 
+                    # self.ml_init_args = read_hp_prms( hp_path )
+                    # self.ml_init_args['input_dim'] = xtr_sub_df.shape[1] 
+                    ml_init_args = read_hp_prms( hp_path )
+                    ml_init_args.update(self.ml_init_args)
 
                 if self.data_prep_def is not None:
                     xtr_sub = self.data_prep_def(xtr_sub_df)
@@ -369,7 +371,8 @@ class LearningCurve():
 
 
                 # Get the estimator
-                model = self.ml_model_def( **self.ml_init_args )
+                # model = self.ml_model_def( **self.ml_init_args )
+                model = self.ml_model_def( **ml_init_args )
                 
                 # Train
                 eval_set = (xvl, yvl)
@@ -392,7 +395,8 @@ class LearningCurve():
                     continue # sometimes keras fails to train a model (evaluates to nan)
 
                 # Dump args
-                model_args = self.ml_init_args.copy()
+                # model_args = self.ml_init_args.copy()
+                model_args = ml_init_args.copy()
                 model_args.update( self.ml_fit_args )
                 dump_dict(model_args, trn_outdir/'model_args.txt') 
 

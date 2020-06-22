@@ -184,6 +184,7 @@ def run(args):
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
+    # import pdb; pdb.set_trace()
     if args['ml']=='lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
@@ -191,31 +192,38 @@ def run(args):
         ml_model_def = lgb.LGBMRegressor
         mltype = 'reg'
         if (ls_hpo_dir is None) and (ps_hpo_dir is None):
-            ml_init_kwargs = { 'n_estimators': 100, 'max_depth': -1,
-                               'learning_rate': 0.1, 'num_leaves': 31,
-                               'n_jobs': 8, 'random_state': None }
+            ml_init_kwargs = {'n_estimators': 100, 'max_depth': -1,
+                              'learning_rate': 0.1, 'num_leaves': 31,
+                              'n_jobs': 8, 'random_state': None}
         ml_fit_kwargs = {'verbose': False, 'early_stopping_rounds': 10}
         data_prep_def = None
         keras_callbacks_def = None
         keras_clr_kwargs = None
 
-    # elif args['ml'] == 'nn_reg0':
     elif (args['ml'] == 'nn_reg0') or (args['ml'] == 'nn_attn0'):
         # Keras model def
-        if (args['ml'] == 'nn_reg0'):
-            from models.keras_model import nn_reg0_model_def, data_prep_nn0_def, model_callback_def
-            ml_model_def = nn_reg0_model_def
-            data_prep_def = data_prep_nn0_def
-        if (args['ml'] == 'nn_attn0'):
-            from models.keras_model import nn_attn0_model_def, data_prep_nn0_def, model_callback_def
-            ml_model_def = nn_attn0_model_def
-            data_prep_def = data_prep_nn0_def
+        from models.keras_model import nn_reg0_model_def, nn_attn0_model_def, data_prep_nn0_def, model_callback_def
         framework = 'keras'
         mltype = 'reg'
-        # ml_model_def = nn_reg0_model_def
-        # data_prep_def = data_prep_nn_reg0_def
         keras_callbacks_def = model_callback_def
-        if (ls_hpo_dir is None) and (ps_hpo_dir is None):
+        data_prep_def = data_prep_nn0_def
+
+        if (args['ml'] == 'nn_reg0'):
+            ml_model_def = nn_reg0_model_def
+        elif (args['ml'] == 'nn_attn0'):
+            ml_model_def = nn_attn0_model_def
+
+        if (ps_hpo_dir is not None):
+            ml_init_kwargs = {'input_dim': xdata.shape[1],
+                              'batchnorm': args['batchnorm']}
+
+        elif (ls_hpo_dir is not None):
+            ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
+            ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
+            ml_init_kwargs['input_dim'] = xdata.shape[1] 
+            ml_init_kwargs['batchnorm'] = args['batchnorm']
+
+        elif (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = {'input_dim': xdata.shape[1],
                               'dr_rate': args['dr_rate'],
                               'opt_name': args['opt'], 'lr': args['lr'],
@@ -227,24 +235,34 @@ def run(args):
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
         # model = ml_model_def(**ml_init_kwargs)
 
-    # elif args['ml'] == 'nn_reg1':
     elif (args['ml'] == 'nn_reg1') or (args['ml'] == 'nn_attn1'):
-        if (args['ml'] == 'nn_reg1'):
-            from models.keras_model import nn_reg1_model_def, data_prep_nn1_def, model_callback_def
-            ml_model_def = nn_reg1_model_def
-            data_prep_def = data_prep_nn1_def
-        if (args['ml'] == 'nn_attn1'):
-            from models.keras_model import nn_attn1_model_def, data_prep_nn1_def, model_callback_def
-            ml_model_def = nn_attn1_model_def
-            data_prep_def = data_prep_nn1_def
+        from models.keras_model import nn_reg1_model_def, nn_attn1_model_def, data_prep_nn1_def, model_callback_def
         framework = 'keras'
         mltype = 'reg'
-        # ml_model_def = nn_reg1_model_def
-        # data_prep_def = data_prep_nn1_def
         keras_callbacks_def = model_callback_def
+        data_prep_def = data_prep_nn1_def
+
+        if (args['ml'] == 'nn_reg1'):
+            ml_model_def = nn_reg1_model_def
+        elif (args['ml'] == 'nn_attn1'):
+            ml_model_def = nn_attn1_model_def
+
         x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
         x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
-        if (ls_hpo_dir is None) and (ps_hpo_dir is None):
+
+        if (ps_hpo_dir is not None):
+            ml_init_kwargs = {'in_dim_ge': x_ge.shape[1],
+                              'in_dim_dd': x_dd.shape[1],
+                              'batchnorm': args['batchnorm']}
+
+        elif (ls_hpo_dir is not None):
+            ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
+            ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
+            ml_init_kwargs['in_dim_ge'] = x_ge.shape[1] 
+            ml_init_kwargs['in_dim_dd'] = x_dd.shape[1] 
+            ml_init_kwargs['batchnorm'] = args['batchnorm']
+
+        elif (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = {'in_dim_ge': x_ge.shape[1], 'in_dim_dd': x_dd.shape[1],
                               'dr_rate': args['dr_rate'],
                               'opt_name': args['opt'], 'lr': args['lr'],
@@ -253,20 +271,12 @@ def run(args):
                          'verbose': 1}
         keras_clr_kwargs = {}
 
-    # import pdb; pdb.set_trace()
-    model = ml_model_def(**ml_init_kwargs)
-    model.summary( print_fn=lg.logger.info )
-    from tensorflow.keras.utils import plot_model
-    plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
-    del model
-
-    # Pre-determined HPs
-    if ps_hpo_dir is not None:
-        ml_init_kwargs = dict()
-    elif ls_hpo_dir is not None:
-        ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
-        ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
-        ml_init_kwargs['input_dim'] = xdata.shape[1] 
+    if len(ml_init_kwargs):
+        model = ml_model_def(**ml_init_kwargs)
+        model.summary( print_fn=lg.logger.info )
+        from tensorflow.keras.utils import plot_model
+        plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
+        del model
 
     # -----------------------------------------------
     #      Learning curve 
@@ -290,6 +300,7 @@ def run(args):
                    'ps_hpo_dir': ps_hpo_dir}
 
     # LC object
+    # import pdb; pdb.set_trace()
     lc_obj = LearningCurve( X=xdata, Y=ydata, meta=meta, **lc_init_args )
     lc_scores = lc_obj.trn_learning_curve( **lc_trn_args )
 
