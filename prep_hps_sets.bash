@@ -2,7 +2,7 @@
 
 # The input that is assigned to "maindir" is the main output
 # dir where keras-tuner dumps the results. For example:
-# bash prep_hps_sets.bash 
+# bash prep_hps_sets.bash k-tuner/gdsc_nn0_tuner_out
 
 maindir=$1
 cd $maindir
