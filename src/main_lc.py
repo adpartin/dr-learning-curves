@@ -36,44 +36,69 @@ from utils.k_tuner import read_hp_prms
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves (LCs).')
     # Input data
-    parser.add_argument('-dp', '--datapath', required=True, default=None, type=str,
+    parser.add_argument('-dp', '--datapath',
+                        required=True, default=None, type=str,
                         help='Full path to data (default: None).')
     # Pre-computed data splits
-    parser.add_argument('-sd', '--splitdir', default=None, type=str,
+    parser.add_argument('-sd', '--splitdir',
+                        default=None, type=str,
                         help='Full path to data splits (default: None).')
-    parser.add_argument('--split_id', default=0, type=int, help='Split id (default: 0).')
+    parser.add_argument('--split_id',
+                        default=0, type=int,
+                        help='Split id (default: 0).')
     # Number of data splits (generated on the fly)
-    parser.add_argument('--n_splits', default=1, type=int,
+    parser.add_argument('--n_splits',
+                        default=1, type=int,
                         help='Number of splits for which to generate LCs (computed automatically) .\
                         Used only if pre-computed splits not provided (default: 3).')
     # Out dirs
-    parser.add_argument('--gout', default=None, type=str,
+    parser.add_argument('--gout',
+                        default=None, type=str,
                         help='Gloabl outdir to dump all the results (i.e., splits/runs) (default: None).')
-    parser.add_argument('--rout', default=None, type=str,
+    parser.add_argument('--rout',
+                        default=None, type=str,
                         help='Run outdir specific run/split (default: None).')
     # Target to predict
-    parser.add_argument('-t', '--trg_name', default='AUC', type=str, choices=['AUC'],
+    parser.add_argument('-t', '--trg_name',
+                        default='AUC', type=str, choices=['AUC'],
                         help='Name of target variable (default: AUC).')
     # Feature types
-    parser.add_argument('-fp', '--fea_prfx', nargs='+', default=['ge','dd'], choices=['DD','GE','dd','ge'],
+    parser.add_argument('-fp', '--fea_prfx',
+                        nargs='+', default=['ge','dd'], choices=['DD','GE','dd','ge'],
                         help='Prefix to identify the features (default: [ge, dd]).')
-    parser.add_argument('-fs', '--fea_sep', default='_', choices=['.','_'],
+    parser.add_argument('-fs', '--fea_sep',
+                        default='_', choices=['.','_'],
                         help="Separator btw fea prefix and fea name (default: '_').")
     # Feature scaling
-    parser.add_argument('-sc', '--scaler', default=None, type=str, choices=['stnd', 'minmax', 'rbst'],
+    parser.add_argument('-sc', '--scaler',
+                        default=None, type=str, choices=['stnd', 'minmax', 'rbst'],
                         help='Feature normalization method (stnd, minmax, rbst) (default: None).')    
     # Learning curve
-    parser.add_argument('--lc_step_scale', default='log', type=str, choices=['log', 'linear'],
+    parser.add_argument('--lc_step_scale',
+                        default='log', type=str, choices=['log', 'linear'],
                         help='Scale of progressive sampling of subset sizes in a learning curve (log2, log, log10, linear) (default: log).')
-    parser.add_argument('--min_size', default=128, type=int, help='The lower bound for the subset size (default: 128).')
-    parser.add_argument('--max_size', default=None, type=int, help='The upper bound for the subset size (default: None).')
-    parser.add_argument('--lc_sizes', default=5, type=int, help='Number of subset sizes (default: 5).')
-    parser.add_argument('--lc_sizes_arr', nargs='+', type=int, default=None, help='List of the actual sizes in the learning curve plot (default: None).')
-    parser.add_argument('--save_model', action='store_true', help='Whether to trained models (default: False).')
-    parser.add_argument('--plot_fit', action='store_true', help='Whether to generate the fit (default: False).')
+    parser.add_argument('--min_size',
+                        default=128, type=int,
+                        help='The lower bound for the subset size (default: 128).')
+    parser.add_argument('--max_size', 
+                        default=None, type=int,
+                        help='The upper bound for the subset size (default: None).')
+    parser.add_argument('--lc_sizes',
+                        default=5, type=int, 
+                        help='Number of subset sizes (default: 5).')
+    parser.add_argument('--lc_sizes_arr', 
+                        nargs='+', type=int, default=None,
+                        help='List of the actual sizes in the learning curve plot (default: None).')
+    parser.add_argument('--save_model',
+                        action='store_true', 
+                        help='Whether to trained models (default: False).')
+    parser.add_argument('--plot_fit', 
+                        action='store_true', 
+                        help='Whether to generate the fit (default: False).')
 
     # HPs
-    parser.add_argument('--ml', default='lgb', type=str,
+    parser.add_argument('--ml',
+                        default='lgb', type=str,
                         choices=['lgb', 'nn_reg0', 'nn_reg1', 'nn_attn0', 'nn_attn1'],
                         help='Choose ML model (default: lgb).')
     parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
@@ -89,6 +114,7 @@ def parse_args(args):
                         help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')    
     # Other
     parser.add_argument('--n_jobs', default=8, type=int, help='Default: 8.')
+
     # args, other_args = parser.parse_known_args(args)
     args = parser.parse_args(args)
     return args
@@ -127,7 +153,7 @@ def run(args):
             # rout = gout/f'run'
             rout = gout
         else:
-            rout = gout/f'run_{split_id}'
+            rout = gout/f'split_{split_id}'
     args['rout'] = str(rout)
     os.makedirs(rout, exist_ok=True)
     
@@ -271,12 +297,12 @@ def run(args):
                          'verbose': 1}
         keras_clr_kwargs = {}
 
-    if len(ml_init_kwargs):
-        model = ml_model_def(**ml_init_kwargs)
-        model.summary( print_fn=lg.logger.info )
-        from tensorflow.keras.utils import plot_model
-        plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
-        del model
+    # if len(ml_init_kwargs):
+    #     model = ml_model_def(**ml_init_kwargs)
+    #     model.summary( print_fn=lg.logger.info )
+    #     from tensorflow.keras.utils import plot_model
+    #     plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
+    #     del model
 
     # -----------------------------------------------
     #      Learning curve 

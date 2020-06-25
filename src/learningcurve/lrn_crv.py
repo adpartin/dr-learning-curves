@@ -193,7 +193,7 @@ class LearningCurve():
         """ Generate a list of training sizes (training sizes). """
         if self.lc_sizes_arr is not None:
             # No need to generate an array of training sizes if lc_sizes_arr is specified
-            self.tr_sizes = self.lc_sizes_arr
+            self.tr_sizes = np.asarray(self.lc_sizes_arr)
             
         else:
             # Fixed spacing
