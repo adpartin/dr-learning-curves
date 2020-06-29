@@ -34,10 +34,11 @@ export CUDA_VISIBLE_DEVICES=$device
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 echo "Global outdir: $gout"
 
+lc_sizes=5
+# lc_sizes=8
 # lc_sizes=12
-lc_sizes=8
-# EPOCH=2
-EPOCH=500
+EPOCH=2
+# EPOCH=500
 
 python src/main_lc.py \
     -dp $dpath \

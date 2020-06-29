@@ -5,7 +5,7 @@
 #BSUB -J dr-crv-bsub
 # ----------------------------------------------
 
-# First load the required module and activate the conda env!
+# Before running bsub, load the required module and activate conda env!
 # module load ibm-wml-ce/1.7.0-2
 # conda activate gen
 
@@ -18,10 +18,8 @@ START_SPLIT=0
 
 cnt=0
 run_trn () {
-
     src=$1
     model=$2
-
     log_dir=log.${src}.${model}
     mkdir -p $log_dir
 
@@ -33,11 +31,13 @@ run_trn () {
         n_trial=3
         for trial in $(seq 1 $n_trial); do
             device=$(($cnt % 6))
-            echo "Split $split; Trial $trial; Device $device"
-            jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun.sh $device $split $trial $src $model "${lc_sizes_arr[@]}" exec >${log_dir}/split"$split"_trial"$trial".log 2>&1 &
+            echo "Split $split; Trial $trial; Device $device (cnt $cnt)"
+
+            jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun.sh $device $split $trial $src $model \
+                "${lc_sizes_arr[@]}" $cnt exec >${log_dir}/cnt"$cnt"_split"$split"_trial"$trial".log 2>&1 &
+
             cnt=$(($cnt + 1))
         done
-
     done
 }
 
@@ -83,10 +83,8 @@ echo "Final runs counter: ${cnt}"
 # # ----------------------------------------
 # SOURCE=gdsc
 # MODEL=nn_reg0
-
 # log_dir=log.${SOURCE}.${MODEL}
 # mkdir -p $log_dir
-
 # # lc_sizes_arr="2024 3798 7128 13377 25105 47113 88417"
 
 # cnt=0
@@ -102,39 +100,13 @@ echo "Final runs counter: ${cnt}"
 
 # done
 
-
-# # ----------------------------------------
-# #   GDSC nn_reg1
-# # ----------------------------------------
-# SOURCE=gdsc
-# MODEL=nn_reg1
-
-# log_dir=log.${SOURCE}.${MODEL}
-# mkdir -p $log_dir
-
-# cnt=0
-# for split in $(seq $START_SPLIT 1 $END_SPLIT); do
-
-#     n_trial=3
-#     for trial in $(seq 1 $n_trial); do
-#         device=$(($cnt % 6))
-#         echo "Split $split; Trial $trial; Device $device"
-#         jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun.sh $device $split $trial $SOURCE $MODEL exec >${log_dir}/run"$split".log 2>&1 &
-#         cnt=$(($cnt + 1))
-#     done
-
-# done
-
-
 # # ----------------------------------------
 # #   CTRP nn_reg0
 # # ----------------------------------------
 # SOURCE=ctrp
 # MODEL=nn_reg0
-
 # log_dir=log.${SOURCE}.${MODEL}
 # mkdir -p $log_dir
-
 # # [  2024   4455   9809  21596  47545 104673 230442]
 
 # cnt=0
@@ -150,68 +122,3 @@ echo "Final runs counter: ${cnt}"
 
 # done
 
-
-# # ----------------------------------------
-# #   CTRP nn_reg1
-# # ----------------------------------------
-# SOURCE=ctrp
-# MODEL=nn_reg1
-
-# log_dir=log.${SOURCE}.${MODEL}
-# mkdir -p $log_dir
-
-# cnt=0
-# for split in $(seq $START_SPLIT 1 $END_SPLIT); do
-
-#     n_trial=3
-#     for trial in $(seq 1 $n_trial); do
-#         device=$(($cnt % 6))
-#         echo "Split $split; Trial $trial; Device $device"
-#         jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun.sh $device $split $trial $SOURCE $MODEL exec >${log_dir}/run"$split".log 2>&1 &
-#         cnt=$(($cnt + 1))
-#     done
-
-# done
-
-
-# # ----------------------------------------
-# # SETS=(1 2 3)
-
-# # for SET in ${SETS[@]}; do
-# #     out_dir=$GLOBAL_SUFX/set${SET}
-# #     echo "Outdir $out_dir"
-# #     for split in $(seq $START_SPLIT 1 $N_SPLITS); do
-# #         device=$(($split % 6))
-# #         echo "Set $SET; Split $split; Device $device"
-# #         jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun_brk.sh $device $split $out_dir $SET \
-# #             exec >logs/run"$split".log 2>&1 &
-# #     done
-# # done
-
-# ------------------------------------------------------------
-# SET=1
-# out_dir=$GLOBAL_SUFX/$SET
-# echo "Dir $out_dir"
-# for split in $(seq $START_SPLIT 1 $N_SPLITS); do
-#     device=$(($split % 6))
-#     echo "Set $SET; Split $split; Device $device"
-#     jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun_brk.sh $device $split $out_dir $SET exec >logs/run"$split".log 2>&1 &
-# done
-
-# SET=2
-# out_dir=$GLOBAL_SUFX/$SET
-# echo "Dir $out_dir"
-# for split in $(seq $START_SPLIT 1 $N_SPLITS); do
-#     device=$(($split % 6))
-#     echo "Set $SET; Split $split; Device $device"
-#     jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun_brk.sh $device $split $out_dir $SET exec >logs/run"$split".log 2>&1 &
-# done
-
-# SET=3
-# out_dir=$GLOBAL_SUFX/$SET
-# echo "Dir $out_dir"
-# for split in $(seq $START_SPLIT 1 $N_SPLITS); do
-#     device=$(($split % 6))
-#     echo "Set $SET; Split $split; Device $device"
-#     jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun_brk.sh $device $split $out_dir $SET exec >logs/run"$split".log 2>&1 &
-# done

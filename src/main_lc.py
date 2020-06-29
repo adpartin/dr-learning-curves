@@ -102,7 +102,7 @@ def parse_args(args):
                         choices=['lgb', 'nn_reg0', 'nn_reg1', 'nn_attn0', 'nn_attn1'],
                         help='Choose ML model (default: lgb).')
     parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
-    parser.add_argument('--batch_size', default=64, type=int, help='Batch size (default: 64).')
+    parser.add_argument('--batch_size', default=32, type=int, help='Batch size (default: 32).')
     parser.add_argument('--dr_rate', default=0.2, type=float, help='Dropout rate (default: 0.2).')
     parser.add_argument('--batchnorm', action='store_true', help='Use batchnorm (default: False).')
     parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')

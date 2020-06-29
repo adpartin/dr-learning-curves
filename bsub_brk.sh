@@ -1,6 +1,6 @@
 #!/bin/bash
-#BSUB -P med106
-#BSUB -W 06:00
+#BSUB -P med110
+#BSUB -W 00:05
 #BSUB -nnodes 80
 #BSUB -J dr-crv-bsub
 # ----------------------------------------------
