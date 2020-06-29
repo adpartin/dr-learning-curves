@@ -1,6 +1,6 @@
 #!/bin/bash
 #BSUB -P med110
-#BSUB -W 00:07
+#BSUB -W 00:15
 #BSUB -nnodes 1
 #BSUB -J dr-crv-bsub
 # ----------------------------------------------
@@ -22,7 +22,7 @@ run_trn1 () {
     lc_sizes_arr=$3
     echo $lc_sizes_arr
 
-    jsrun -n 6 -a 1 -c 4 -g 1 ./jsrun1.sh $src $model \
+    jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun1.sh $src $model \
         "${lc_sizes_arr[@]}" exec >${log_dir}/${src}.${model}.log 2>&1 &
 }
 

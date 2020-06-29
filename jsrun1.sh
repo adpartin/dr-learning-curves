@@ -21,9 +21,7 @@ echo "sizes:  $lc_sizes_arr"
 # Data and splits path
 dpath="data/ml.dfs/data.${src}.dd.ge.raw/data.${src}.dd.ge.raw.parquet"
 spath="data/ml.dfs/data.${src}.dd.ge.raw/data.${src}.dd.ge.raw.splits"
-
-# PS-HPO dir
-ps_hpo_dir="k-tuner/${src}_${model}_tuner_out/ps_hpo"
+ps_hpo_dir="k-tuner/${src}_${model}_tuner_out/ps_hpo" # PS-HPO dir
 
 echo "dpath:  $dpath"
 echo "spath:  $spath"
@@ -39,13 +37,13 @@ END_SPLIT=0
 # END_SPLIT=19
 START_SPLIT=0
 
-# cnt=0
+# ----------------------------------------------------------------
 cnt=-1
 for split in $(seq $START_SPLIT 1 $END_SPLIT); do
 
     n_trial=3
     for trial in $(seq 1 $n_trial); do
-        cnt=$(($cnt + 1)) # why this does not increment??
+        cnt=$(($cnt + 1))
 
         device=$(($cnt % 6))
         export CUDA_VISIBLE_DEVICES=$device
@@ -58,6 +56,7 @@ for split in $(seq $START_SPLIT 1 $END_SPLIT); do
         mkdir -p $gout
         
         # TODO: it seems like the python script is not launched(??)
+        sleep 2
         python src/main_lc.py \
             -dp $dpath \
             -sd $spath \
@@ -71,5 +70,6 @@ for split in $(seq $START_SPLIT 1 $END_SPLIT); do
             --lc_sizes_arr $lc_sizes_arr > "$gout"/cnt"$cnt".log 2>&1 &
     done
 done
+# ----------------------------------------------------------------
 
 
