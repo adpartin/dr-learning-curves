@@ -55,8 +55,8 @@ echo "gout: $gout"
 # Train settings
 # LC_SIZES=7
 # EPOCH=1
-EPOCH=3
-# EPOCH=500
+# EPOCH=3
+EPOCH=500
 
 sleep 2
 
