@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# lc_keras.bash gdsc nn_reg0 0
 OUTDIR=lc.out
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
@@ -9,16 +10,18 @@ LC_SIZES=7
 # LC_SIZES=12
 
 # EPOCH=2
-EPOCH=500
+EPOCH=10
+# EPOCH=500
 
 SPLIT=0
 
 # Default HPs
 SOURCE=$1
-DEVICE=$2
-MODEL=$3
-export CUDA_VISIBLE_DEVICES=$2
-echo "Processing source: $SOURCE"
+MODEL=$2
+DEVICE=$3
+export CUDA_VISIBLE_DEVICES=$3
+echo "Source: $SOURCE"
+echo "Model:  $MODEL"
 echo "CUDA device: $CUDA_VISIBLE_DEVICES"
 echo "LC sizes: $lc_sizes"
 
