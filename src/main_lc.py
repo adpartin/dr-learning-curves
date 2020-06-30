@@ -71,7 +71,7 @@ def parse_args(args):
                         help="Separator btw fea prefix and fea name (default: '_').")
     # Feature scaling
     parser.add_argument('-sc', '--scaler',
-                        default=None, type=str, choices=['stnd', 'minmax', 'rbst'],
+                        default='stnd', type=str, choices=['stnd', 'minmax', 'rbst'],
                         help='Feature normalization method (stnd, minmax, rbst) (default: None).')    
     # Learning curve
     parser.add_argument('--lc_step_scale',
@@ -113,7 +113,7 @@ def parse_args(args):
     parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
                         help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')    
     # Other
-    parser.add_argument('--n_jobs', default=8, type=int, help='Default: 8.')
+    parser.add_argument('--n_jobs', default=4, type=int, help='Default: 4.')
 
     # args, other_args = parser.parse_known_args(args)
     args = parser.parse_args(args)
