@@ -46,6 +46,15 @@ def load_data(path, tr_set='te'):
     return df
 
 
+def load_data_hpc(path, tr_set='te'):
+    """ Load scores from the runs on Summit HPC. """
+    df = pd.read_csv(path);
+    df.rename(columns={'split': 'run'}, inplace=True)
+    if tr_set != 'all':
+        df = df[ df['set'] == tr_set ].reset_index(drop=True)
+    return df
+
+
 def subset_data(df, col='tr_size', x_mn=None, x_mx=None):
     """ Subset df based on range. """
     if x_mn is not None:
