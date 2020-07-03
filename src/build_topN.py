@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import os
+import sys
+import numpy as np
 import pandas as pd
 import argparse
 from pathlib import Path
@@ -170,6 +172,7 @@ def build_dataframe(args):
     # -----------------------------------------------
     rsp = pd.read_csv(response_path, sep='\t', engine='c',
                               low_memory=False, na_values=na_values, warn_bad_lines=True)
+    rsp.drop(columns='STUDY', inplace=True) # gives error when saves in 'parquet' format
     print_fn(rsp.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index()) # (ap)
     
     # (ap) Extract specific data sources
@@ -232,6 +235,7 @@ def build_dataframe(args):
     # Join response data with Drug descriptor & RNASeq
     ge = pd.read_csv(get_cell_feature_path(args), sep='\t', low_memory=False,
                      na_values=na_values, warn_bad_lines=True)
+    ge = ge.astype(dtype={c: np.float32 for c in ge.columns[1:]})  # Cast features
     ge = ge[ge['Sample'].isin(cl_filter)].reset_index(drop=True)
 
     ge.rename(columns={'Sample': 'CELL'}, inplace=True)
@@ -245,6 +249,7 @@ def build_dataframe(args):
     dd_path = Path(base_data_dir, 'pan_drugs_dragon7_descriptors.tsv') # (ap)
     dd = pd.read_csv(dd_path, sep='\t', low_memory=False,
                      na_values=na_values, warn_bad_lines=True)
+    dd = dd.astype(dtype={c: np.float32 for c in dd.columns[1:]})  # Cast features
     dd.rename(columns={'NAME': 'DRUG'}, inplace=True) # (ap)
     dd = dd.rename(columns={c: 'dd_'+c for c in dd.columns[1:]}) # prefix drug desc names
     
@@ -324,6 +329,8 @@ def build_dataframe(args):
         df_drugs.to_csv(build_file_basename(args) + '_drug.txt', header=False, index=False)
         df_final.to_hdf(save_filename, key='df', mode='w', complib='blosc:snappy', complevel=9)
 
+    # Memory usage
+    print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(df_final)/1e9))
     
     # --------------------------------------------------
     # (ap) tissue type histogram
