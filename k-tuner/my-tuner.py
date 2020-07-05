@@ -10,6 +10,7 @@ import pandas as pd
 fpath = Path(__file__).resolve().parent
 sys.path.append( str(fpath/'../src') ) # must convert to str
 
+from utils.classlogger import Logger
 from utils.utils import load_data, dump_dict, get_print_func
 from ml.scale import scale_fea
 from ml.data import extract_subset_fea
@@ -24,12 +25,14 @@ from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
+
 MAX_TRIALS = 50
 EXECUTIONS_PER_TRIAL = 1
-EPOCHS = 40
+EPOCHS = 12
 OBJECTIVE = 'val_mae'
 
-def get_data(datapath, seed=None, tr_sz=None, data_prep_def=None):
+
+def get_data(datapath, seed=None, tr_sz=None, vl_sz=None, data_prep_def=None, print_fn=print):
     data = load_data( datapath )
     print_fn('data.shape {}'.format(data.shape))
     trg_name = 'AUC'
@@ -65,10 +68,19 @@ def get_data(datapath, seed=None, tr_sz=None, data_prep_def=None):
         xtr = xtr.iloc[:tr_sz,:]
         ytr = ytr.iloc[:tr_sz]
 
+    if (vl_sz is not None) and (vl_sz < xvl.shape[0]):
+        xvl = xvl.iloc[:vl_sz,:]
+        yvl = yvl.iloc[:vl_sz]
+
     # xtr = xtr.values
     # ytr = ytr.values
     # xvl = xvl.values
     # yvl = yvl.values
+
+    print_fn('xtr {}'.format(xtr.shape))
+    print_fn('xvl {}'.format(xvl.shape))
+    print_fn('ytr {}'.format(ytr.shape))
+    print_fn('yvl {}'.format(yvl.shape))
 
     if data_prep_def is not None:
         xtr = data_prep_def(xtr)
@@ -83,6 +95,7 @@ def get_data(datapath, seed=None, tr_sz=None, data_prep_def=None):
     del xdata
     return xtr, ytr, xvl, yvl
 
+
 # ------------------------------------------------------------
 def data_prep_nn0_def(xdata):
     """
@@ -93,6 +106,7 @@ def data_prep_nn0_def(xdata):
     xdata = np.asarray( xdata )
     x_dct = {'inputs': xdata}
     return x_dct
+
 
 def data_prep_nn1_def(xdata):
     """
@@ -108,10 +122,14 @@ def data_prep_nn1_def(xdata):
     return x_dct
 # ------------------------------------------------------------
 
+
+data_sources = ['gdsc', 'ctrp', 'nci60', 'top21']
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--source', type=str, default='gdsc', choices=['gdsc', 'ctrp'])
+parser.add_argument('--source', type=str, default='gdsc', choices=data_sources)
 parser.add_argument('--seed', type=int, default=0)
-parser.add_argument('--sz', type=int, default=None)
+parser.add_argument('--tr_sz', type=int, default=None)
+parser.add_argument('--vl_sz', type=int, default=None)
 parser.add_argument('--ml', type=str, default='nn0', choices=['nn0', 'nn1'])
 args = parser.parse_args()
 
@@ -119,20 +137,30 @@ DATADIR = fpath/'../data/ml.dfs'
 datapath = DATADIR/f'data.{args.source}.dd.ge.raw/data.{args.source}.dd.ge.raw.parquet'
 
 print_fn = print
-source = [str(s) for s in ['gdsc', 'ctrp'] if s in str(datapath)][0]
+source = [str(s) for s in data_sources if s in str(datapath)][0]
 if source is None:
     outdir = fpath/'out'
 else:
     outdir = fpath/f'{source}_{args.ml}_tuner_out'
 os.makedirs(outdir, exist_ok=True)
 
+lg = Logger( outdir/'tuner.log' )
+print_fn = get_print_func( lg.logger )
+
 if args.ml == 'nn0':
     data_prep_def = data_prep_nn0_def
 elif args.ml == 'nn1':
     data_prep_def = data_prep_nn1_def
-xtr, ytr, xvl, yvl = get_data(datapath, seed=args.seed, tr_sz=args.sz,
-                              data_prep_def=data_prep_def)
+
+import pdb; pdb.set_trace()
+xtr, ytr, xvl, yvl = get_data(datapath,
+                              seed=args.seed,
+                              tr_sz=args.tr_sz,
+                              vl_sz=args.vl_sz,
+                              data_prep_def=data_prep_def,
+                              print_fn=print)
 tr_sz = len(ytr)
+
 
 """Basic case:
 - We define a `build_model` function
@@ -199,7 +227,7 @@ class HyModelNN0(HyperModel):
         opt = keras.optimizers.Adam( hp_lr )
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
         return model
-# ------------------------------------------------------------
+
 
 # ----------------------------------------------------------------
 class HyModelNN1(HyperModel):
@@ -298,8 +326,9 @@ class HyModelNN1(HyperModel):
         opt = keras.optimizers.Adam( hp_lr )
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
         return model
-# ------------------------------------------------------------
 
+
+# ------------------------------------------------------------
 # model = build_model(in_dim_ge=xtr['in_ge'].shape[1],
 #                     in_dim_dd=xtr['in_dd'].shape[1])
 # model.fit(xtr, ytr, epochs=10, batch_size=32, verbose=1)
@@ -316,9 +345,9 @@ elif args.ml == 'nn1':
 dist_strategy = None
 
 proj_name = f'tr_sz_{tr_sz}'
-tuner = BayesianOptimization(
+# tuner = BayesianOptimization(
 # tuner = Hyperband(
-# tuner = RandomSearch(
+tuner = RandomSearch(
     hypermodel,
     objective = OBJECTIVE,
     max_trials = MAX_TRIALS,
@@ -330,9 +359,12 @@ tuner = BayesianOptimization(
 
 tuner.search_space_summary()
 
+
 # import pdb; pdb.set_trace()
 print_fn('Start HP search ...')
-tuner.search(x=xtr, y=ytr, epochs=EPOCHS, batch_size=32,
+tuner.search(x=xtr, y=ytr,
+             epochs=EPOCHS,
+             batch_size=32,
              validation_data=(xvl, yvl))
 
 my_log_out = outdir/proj_name/'my_logs'

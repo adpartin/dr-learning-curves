@@ -22,7 +22,7 @@ python src/batch_lc.py \
     -ns 120 \
     --fea_prfx ge dd --fea_sep _ -t AUC \
     --ml $MODEL \
-    --gout $OUTDIR/lc_${SOURCE}_${MODEL}_default \
+    --gout $OUTDIR/lc_${SOURCE}_${MODEL} \
     --lc_sizes $lc_sizes \
     --par_jobs $PAR_JOBS 
 

@@ -43,6 +43,7 @@ os.makedirs(OUTDIR, exist_ok=True)
 RSP_FILENAME = 'combined_single_response_agg'  # reposne data
 # RSP_FILENAME_CHEM = 'chempartner_single_response_agg'  # reposne data
 DSC_FILENAME = 'pan_drugs_dragon7_descriptors.tsv'  # drug descriptors data (new)
+DSC_NCI60_FILENAME = 'NCI60_dragon7_descriptors.tsv'  # drug descriptors data (new)
 DRUG_META_FILENAME = 'drug_info'
 CELL_META_FILENAME = 'combined_cancer_types'
 # CELL_META_FILENAME = 'combined_metadata_2018May.txt'
@@ -95,6 +96,9 @@ def load_rsp(filename, src=None, keep_bad=False, print_fn=print):
     rsp.drop(columns='STUDY', inplace=True) # gives error when saves in 'parquet' format
     # print(rsp.dtypes)
 
+    print_fn(f'rsp.shape {rsp.shape}')
+    groupby_src_and_print(rsp, print_fn=print_fn)        
+        
     # Drop bad samples
     if keep_bad is False:
         # Yitan
@@ -110,9 +114,6 @@ def load_rsp(filename, src=None, keep_bad=False, print_fn=print):
         rsp = rsp.loc[~id_drop,:]
         print_fn(f'Dropped {sum(id_drop)} rsp data points.')
 
-    print_fn(f'rsp.shape {rsp.shape}')
-    groupby_src_and_print(rsp, print_fn=print_fn)        
-        
     print_fn('\nExtract specific sources.')
     rsp['SOURCE'] = rsp['SOURCE'].apply(lambda x: x.lower())
     rsp.replace([np.inf, -np.inf], value=np.nan, inplace=True) # Replace -inf and inf with nan
@@ -154,42 +155,66 @@ def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=n
         
 
 def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
-             impute=True, plot=True, outdir=None):  
+            src=None, impute=True, plot=True, outdir=None):  
     """ Load drug descriptors. """
-    print_fn(f'\nLoad drug descriptors ... {DATADIR/filename}')
-    dd = pd.read_csv(DATADIR/filename, sep='\t', low_memory=False,
-                      na_values=na_values, warn_bad_lines=True)
+    if 'nci60' in src:
+        path = DATADIR/DSC_NCI60_FILENAME
+    else:
+        path = DATADIR/DSC_FILENAME
+    print_fn(f'\nLoad drug descriptors ... {path}')
+    dd = pd.read_csv(path, sep='\t', low_memory=False,
+                     na_values=na_values, warn_bad_lines=True)
+
     dd = dd.astype(dtype={c: float_type for c in dd.columns[1:]})  # Cast features
-    dd = dd.rename(columns={c: fea_prfx_dct['dd']+c for c in dd.columns[1:] if fea_prfx_dct['dd'] not in c}) # prefix drug desc names
     dd.rename(columns={'NAME': 'DRUG'}, inplace=True)
 
-    # ------------------
-    # Filter descriptors
-    # ------------------
-    # dd.nunique(dropna=True).value_counts()
-    # dd.nunique(dropna=True).sort_values()
-    print_fn('Drop descriptors with too many NA values ...')
-    if plot and (outdir is not None):
-        plot_dd_na_dist(dd=dd, savepath=Path(outdir)/'dd_hist_ratio_of_na.png')
-    dd = dropna(dd, axis=1, th=dropna_th)
-    print_fn(f'dd.shape {dd.shape}')
-    # dd.isna().sum().sort_values(ascending=False)
+    # Prefix drug desc names
+    dd = dd.rename(columns={c: fea_prfx_dct['dd']+c for c in dd.columns[1:] if fea_prfx_dct['dd'] not in c}) 
 
-    # There are descriptors where there is a single unique value excluding NA (drop those)
-    print_fn('Drop descriptors that have a single unique value (excluding NAs) ...')
-    col_idx = dd.nunique(dropna=True).values==1
-    dd = dd.iloc[:, ~col_idx]
-    print_fn(f'dd.shape {dd.shape}')
+    if 'nci60' in src:
+        # For NCI60, extract specific columns that were chosen for CTRP
+        col_names = pd.read_csv(OUTDIR/'dd_col_names.csv').columns.tolist()
+        dd = dd[col_names]
 
-    # There are still lots of descriptors which have only a few unique values
-    # we can categorize those values. e.g.: 564 descriptors have only 2 unique vals,
-    # and 154 descriptors have only 3 unique vals, etc.
-    # todo: use utility code from p1h_alex/utils/data_preproc.py that transform those
-    # features into categorical and also applies an appropriate imputation.
-    # dd.nunique(dropna=true).value_counts()[:10]
-    # dd.nunique(dropna=true).value_counts().sort_index()[:10]
+        # Filter sample with too many NaN values
+        dd = dropna(dd, axis=0, max_na=0)
 
+    else:
+        # ------------------
+        # Filter descriptors
+        # ------------------
+        # dd.nunique(dropna=True).value_counts()
+        # dd.nunique(dropna=True).sort_values()
+        print_fn('Drop descriptors with too many NA values ...')
+        if plot and (outdir is not None):
+            plot_dd_na_dist(dd=dd, savepath=Path(outdir)/'dd_hist_ratio_of_na.png')
+        dd = dropna(dd, axis=1, th=dropna_th)
+        print_fn(f'dd.shape {dd.shape}')
+        # dd.isna().sum().sort_values(ascending=False)
+
+        # There are descriptors where there is a single unique value excluding NA (drop those)
+        print_fn('Drop descriptors that have a single unique value (excluding NAs) ...')
+        # col_idx = dd.nunique(dropna=True).values==1 # takes too long for large dataset
+        # dd = dd.iloc[:, ~col_idx]
+        # TODO this filtering replaces the filtering above!
+        dd_names = dd.iloc[:,0]
+        dd_fea = dd.iloc[:,1:].copy()
+        col_idx = dd_fea.std(axis=0, skipna=True, numeric_only=True).values==0
+        dd_fea = dd_fea.iloc[:, ~col_idx]
+        dd = pd.concat([dd_names, dd_fea], axis=1)
+        print_fn(f'dd.shape {dd.shape}')
+
+        # There are still lots of descriptors which have only a few unique values
+        # we can categorize those values. e.g.: 564 descriptors have only 2 unique vals,
+        # and 154 descriptors have only 3 unique vals, etc.
+        # todo: use utility code from p1h_alex/utils/data_preproc.py that transform those
+        # features into categorical and also applies an appropriate imputation.
+        # dd.nunique(dropna=true).value_counts()[:10]
+        # dd.nunique(dropna=true).value_counts().sort_index()[:10]
+
+    # ---------------------
     # Impute missing values
+    # ---------------------
     if impute:
         print_fn('Impute NA values ...')
         dd = impute_values(data=dd, print_fn=print_fn)
@@ -212,16 +237,27 @@ def plot_dd_na_dist(dd, savepath=None):
         plt.savefig('dd_hist_ratio_of_na.png', bbox_inches='tight') # dpi=200
         
 
-def dropna(df, axis=0, th=0.4):
+def dropna(df, axis=0, th=0.05, max_na=None):
     """ Drop rows or cols based on the ratio of NA values along the axis.
+    Instead of ratio, you can also specify the max number of NA.
     Args:
         th (float) : if the ratio of NA values along the axis is larger that th, then drop all the values
+        max_na (int) : specify max allowable number of na (instead of specifying the ratio)
         axis (int) : 0 to drop rows; 1 to drop cols
     """
-    df = df.copy()
+    # df = df.copy()
     axis = 0 if axis==1 else 1
-    col_idx = df.isna().sum(axis=axis)/df.shape[axis] <= th
-    df = df.iloc[:, col_idx.values]
+
+    if max_na is not None:
+        assert max_na >= 0, 'max_na must be >=0.'
+        idx = df.isna().sum(axis=axis) <= max_na
+    else:
+        idx = df.isna().sum(axis=axis)/df.shape[axis] <= th
+
+    if axis == 0:
+        df = df.iloc[:, idx.values]
+    else:
+        df = df.iloc[idx.values, :]
     return df        
         
         
@@ -305,7 +341,8 @@ def run(args):
     # -----------------------------------------------
     rsp = load_rsp(RSP_FILENAME, src=args['src'], keep_bad=args['keep_bad'], print_fn=print_fn)
     ge = load_ge(DATADIR, ge_norm=args['ge_norm'], print_fn=print_fn, float_type=prfx_dtypes['ge'])
-    dd = load_dd(DSC_FILENAME, dropna_th=args['dropna_th'], print_fn=print_fn, float_type=prfx_dtypes['dd'], outdir=outdir)
+    dd = load_dd(DSC_FILENAME, dropna_th=args['dropna_th'], print_fn=print_fn,
+                 float_type=prfx_dtypes['dd'], src=args['src'], outdir=outdir)
 
     # -----------------------------------------------
     #     Load cell and drug meta
@@ -354,6 +391,10 @@ def run(args):
     print_fn(f'data.shape {data.shape}\n')
     print_fn(data.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
     del dd
+
+    # Sample from NCI60
+    if ('nci60' in args['src']) and (data.shape[0] > 500000):
+        data = data.sample(n=int(5e5), random_state=0)
 
     # Memory usage
     print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))

@@ -1,17 +1,20 @@
 #!/bin/bash
 
+# Example:
 # lc_keras.bash gdsc nn_reg0 0
+
+# Call this function from the main project dir!
 OUTDIR=lc.out
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
-LC_SIZES=7
+# LC_SIZES=7
 # LC_SIZES=12
 
 # EPOCH=2
-EPOCH=10
-# EPOCH=500
+# EPOCH=10
+EPOCH=500
 
 SPLIT=0
 
@@ -19,6 +22,7 @@ SPLIT=0
 SOURCE=$1
 MODEL=$2
 DEVICE=$3
+
 export CUDA_VISIBLE_DEVICES=$3
 echo "Source: $SOURCE"
 echo "Model:  $MODEL"
@@ -27,8 +31,11 @@ echo "LC sizes: $lc_sizes"
 
 dpath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet 
 spath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits 
+# ps_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ps_hpo
+ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
 
-n_runs=3
+n_runs=1
+# n_runs=3
 for r in $(seq 1 $n_runs); do
     echo "Run $r"
 
@@ -41,12 +48,13 @@ for r in $(seq 1 $n_runs); do
         -t AUC -sc stnd --ml $MODEL \
         --batch_size 32 --epoch $EPOCH \
         --batchnorm \
-        --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ps_hpo.test_fair \
-        --ps_hpo_dir k-tuner/${SOURCE}_${MODEL}_tuner_out/ps_hpo \
+        --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
+        --ls_hpo_dir $ls_hpo_dir \
         --rout run$r \
-        --lc_sizes $LC_SIZES \
-        --min_size 2024
+        --lc_sizes_arr 400000
 
-        # --lc_sizes_arr 88416 \
+        # --ps_hpo_dir $ps_hpo_dir \
+        # --lc_sizes $LC_SIZES \
+        # --min_size 2024
 done
 
