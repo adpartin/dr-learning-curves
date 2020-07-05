@@ -1,17 +1,20 @@
 #!/bin/bash
 
+# Example:
 # lc_keras.bash gdsc nn_reg0 0
+
+# Call this function from the main project dir!
 OUTDIR=lc.out
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
-LC_SIZES=7
+# LC_SIZES=7
 # LC_SIZES=12
 
-EPOCH=2
+# EPOCH=2
 # EPOCH=10
-# EPOCH=500
+EPOCH=500
 
 SPLIT=0
 
@@ -19,6 +22,7 @@ SPLIT=0
 SOURCE=$1
 MODEL=$2
 DEVICE=$3
+
 export CUDA_VISIBLE_DEVICES=$3
 echo "Source: $SOURCE"
 echo "Model:  $MODEL"
@@ -47,7 +51,7 @@ for r in $(seq 1 $n_runs); do
         --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
         --ls_hpo_dir $ls_hpo_dir \
         --rout run$r \
-        --lc_sizes_arr 392120
+        --lc_sizes_arr 400000
 
         # --ps_hpo_dir $ps_hpo_dir \
         # --lc_sizes $LC_SIZES \

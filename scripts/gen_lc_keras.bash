@@ -4,7 +4,8 @@ OUTDIR=lc.out
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
-lc_sizes=12
+# lc_sizes=12
+lc_sizes=7
 # lc_sizes=4
 # EPOCH=400
 EPOCH=500
@@ -63,6 +64,7 @@ python src/main_lc.py \
     --batch_size 64 --epoch $EPOCH \
     --batchnorm \
     --gout $OUTDIR/lc_${SOURCE}_${MODEL}_default \
+    --min_size 2024
     --lc_sizes $lc_sizes \
 
     # --lc_sizes_arr 88416 \

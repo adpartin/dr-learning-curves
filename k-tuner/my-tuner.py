@@ -123,7 +123,7 @@ def data_prep_nn1_def(xdata):
 # ------------------------------------------------------------
 
 
-data_sources = ['gdsc', 'ctrp', 'top21']
+data_sources = ['gdsc', 'ctrp', 'nci60', 'top21']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--source', type=str, default='gdsc', choices=data_sources)
