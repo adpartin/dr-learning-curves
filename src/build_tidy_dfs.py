@@ -393,8 +393,12 @@ def run(args):
     del dd
 
     # Sample from NCI60
-    if ('nci60' in args['src']) and (data.shape[0] > 500000):
-        data = data.sample(n=int(5e5), random_state=0)
+    # max_sz = 500000
+    max_sz = 700000
+    if ('nci60' in args['src']) and (data.shape[0] > max_sz):
+        print_fn('\nSample the final dataset ...')
+        data = data.sample(n=max_sz, random_state=0)
+        print_fn(f'data.shape {data.shape}\n')
 
     # Memory usage
     print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))
