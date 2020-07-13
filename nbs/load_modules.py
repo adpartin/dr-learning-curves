@@ -129,12 +129,16 @@ class FitPwrLaw():
     
     
     def calc_fit(self, x=None, x1=None, x2=None):
+        """ Calculate the fit. """
         if x is not None:
             y = self.a * x**(self.b) + self.c
+            
         elif (x1 is not None) and (x2 is not None):
             x = np.linspace(x1, x2, 50)
             y = self.a * x**(self.b) + self.c
+            
         else:
             x = np.linspace(xf.min(), xf.max(), 50)
             y = self.a * x**(self.b) + self.c
+            
         return x, y

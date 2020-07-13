@@ -35,7 +35,7 @@ summary_coefs <- function(model) {
 
 
 # fit_nlsLM_power_law <- function(dfit, startParams=list(a=1.2, b=-0.5, c=0.06)) {
-fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.5, c=0.06)) {  
+fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.3, c=0.03)) {  
   # www.r-bloggers.com/a-better-nls/
   # stackoverflow.com/questions/18364402
   
