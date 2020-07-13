@@ -31,87 +31,127 @@ import learningcurve as lc
 from learningcurve.lrn_crv import LearningCurve
 import learningcurve.lc_plots as lc_plots 
 from utils.k_tuner import read_hp_prms
-    
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves (LCs).')
     # Input data
     parser.add_argument('-dp', '--datapath',
-                        required=True, default=None, type=str,
+                        required=True,
+                        default=None,
+                        type=str,
                         help='Full path to data (default: None).')
     # Pre-computed data splits
     parser.add_argument('-sd', '--splitdir',
-                        default=None, type=str,
+                        default=None,
+                        type=str,
                         help='Full path to data splits (default: None).')
     parser.add_argument('--split_id',
-                        default=0, type=int,
+                        default=0,
+                        type=int,
                         help='Split id (default: 0).')
     # Number of data splits (generated on the fly)
     parser.add_argument('--n_splits',
-                        default=1, type=int,
+                        default=1,
+                        type=int,
                         help='Number of splits for which to generate LCs (computed automatically) .\
                         Used only if pre-computed splits not provided (default: 3).')
     # Out dirs
     parser.add_argument('--gout',
-                        default=None, type=str,
+                        default=None,
+                        type=str,
                         help='Gloabl outdir to dump all the results (i.e., splits/runs) (default: None).')
     parser.add_argument('--rout',
-                        default=None, type=str,
+                        default=None,
+                        type=str,
                         help='Run outdir specific run/split (default: None).')
     # Target to predict
     parser.add_argument('-t', '--trg_name',
-                        default='AUC', type=str, choices=['AUC'],
+                        default='AUC',
+                        type=str,
+                        choices=['AUC'],
                         help='Name of target variable (default: AUC).')
     # Feature types
     parser.add_argument('-fp', '--fea_prfx',
-                        nargs='+', default=['ge','dd'], choices=['DD','GE','dd','ge'],
+                        nargs='+',
+                        default=['ge','dd'],
+                        choices=['DD','GE','dd','ge'],
                         help='Prefix to identify the features (default: [ge, dd]).')
     parser.add_argument('-fs', '--fea_sep',
-                        default='_', choices=['.','_'],
+                        default='_',
+                        choices=['.','_'],
                         help="Separator btw fea prefix and fea name (default: '_').")
     # Feature scaling
     parser.add_argument('-sc', '--scaler',
-                        default='stnd', type=str, choices=['stnd', 'minmax', 'rbst'],
-                        help='Feature normalization method (stnd, minmax, rbst) (default: None).')    
+                        default='stnd',
+                        type=str,
+                        choices=['stnd', 'minmax', 'rbst'],
+                        help='Feature normalization method (stnd, minmax, rbst) (default: None).')
     # Learning curve
     parser.add_argument('--lc_step_scale',
-                        default='log', type=str, choices=['log', 'linear'],
+                        default='log',
+                        type=str,
+                        choices=['log', 'linear'],
                         help='Scale of progressive sampling of subset sizes in a learning curve (log2, log, log10, linear) (default: log).')
     parser.add_argument('--min_size',
-                        default=128, type=int,
+                        default=128,
+                        type=int,
                         help='The lower bound for the subset size (default: 128).')
-    parser.add_argument('--max_size', 
-                        default=None, type=int,
+    parser.add_argument('--max_size',
+                        default=None,
+                        type=int,
                         help='The upper bound for the subset size (default: None).')
     parser.add_argument('--lc_sizes',
-                        default=5, type=int, 
+                        default=5,
+                        type=int,
                         help='Number of subset sizes (default: 5).')
-    parser.add_argument('--lc_sizes_arr', 
-                        nargs='+', type=int, default=None,
+    parser.add_argument('--lc_sizes_arr',
+                        nargs='+',
+                        type=int,
+                        default=None,
                         help='List of the actual sizes in the learning curve plot (default: None).')
     parser.add_argument('--save_model',
-                        action='store_true', 
+                        action='store_true',
                         help='Whether to trained models (default: False).')
-    parser.add_argument('--plot_fit', 
-                        action='store_true', 
+    parser.add_argument('--plot_fit',
+                        action='store_true',
                         help='Whether to generate the fit (default: False).')
-
-    # HPs
+    # Model
     parser.add_argument('--ml',
                         default='lgb', type=str,
                         choices=['lgb', 'nn_reg0', 'nn_reg1', 'nn_attn0', 'nn_attn1'],
                         help='Choose ML model (default: lgb).')
-    parser.add_argument('--epoch', default=1, type=int, help='Epochs (default: 1).')
-    parser.add_argument('--batch_size', default=32, type=int, help='Batch size (default: 32).')
-    parser.add_argument('--dr_rate', default=0.2, type=float, help='Dropout rate (default: 0.2).')
-    parser.add_argument('--batchnorm', action='store_true', help='Use batchnorm (default: False).')
-    parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'], help='Optimizer (default: adam).')
-    parser.add_argument('--lr', default='0.001', type=float, help='Learning rate (default: 0.001).')
+    # NN HPs
+    parser.add_argument('--epoch', default=1, type=int,
+                        help='Epochs (default: 1).')
+    parser.add_argument('--batch_size', default=32, type=int,
+                        help='Batch size (default: 32).')
+    parser.add_argument('--dr_rate', default=0.2, type=float,
+                        help='Dropout rate (default: 0.2).')
+    parser.add_argument('--batchnorm', action='store_true',
+                        help='Use batchnorm (default: False).')
+    parser.add_argument('--opt', default='adam', type=str, choices=['sgd', 'adam'],
+                        help='Optimizer (default: adam).')
+    parser.add_argument('--lr', default='0.001', type=float,
+                        help='Learning rate (default: 0.001).')
+    # LGBM HPs
+    parser.add_argument('--n_estimators', default=100, type=int,
+                        help='n_estimators (default: 100).')
+    parser.add_argument('--num_leaves', default=32, type=int,
+                        help='num_leaves (default: 32).')
+    parser.add_argument('--max_depth', default=-1, type=int,
+                        help='max_depth (default: -1).')
+    parser.add_argument('--learning_rate', default=0.1, type=float,
+                        help='learning_rate (default: 0.1).')
+    # HP path
+    parser.add_argument('--ls_hpo_dir', default=None, type=str,
+                        help='Path to a single set of HP names and values.')
+    parser.add_argument('--ps_hpo_dir', default=None, type=str,
+                        help='Path to a dir with multiple sets of HP names and values.')
+    parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str,
+                        choices=['mean_absolute_error'],
+                        help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')
 
-    parser.add_argument('--ls_hpo_dir', default=None, type=str, help='Path to a single set of HP names and values.')
-    parser.add_argument('--ps_hpo_dir', default=None, type=str, help='Path to a dir with multiple sets of HP names and values.')
-    parser.add_argument('--hpo_metric', default='mean_absolute_error', type=str, choices=['mean_absolute_error'],
-                        help='Metric for HPO evaluation. Required for UPF workflow on Theta HPC (default: mean_absolute_error).')    
     # Other
     parser.add_argument('--n_jobs', default=4, type=int, help='Default: 4.')
 
@@ -142,7 +182,7 @@ def run(args):
         gout = gout/datapath.with_suffix('.lc').name
     args['gout'] = str(gout)
     os.makedirs(gout, exist_ok=True)
-    
+
     # -----------------------------------------------
     #       Run (single split) outdir
     # -----------------------------------------------
@@ -156,7 +196,7 @@ def run(args):
             rout = gout/f'split_{split_id}'
     args['rout'] = str(rout)
     os.makedirs(rout, exist_ok=True)
-    
+
     # -----------------------------------------------
     #       Logger
     # -----------------------------------------------
@@ -165,14 +205,14 @@ def run(args):
     print_fn(f'File path: {filepath}')
     print_fn(f'\n{pformat(args)}')
     dump_dict(args, outpath=rout/'trn.args.txt') # dump args.
-    
+
     # -----------------------------------------------
     #       Load data
     # -----------------------------------------------
     print_fn('\nLoad master dataset.')
     data = load_data( datapath )
     print_fn('data.shape {}'.format(data.shape))
-    
+
     # Get features (x), target (y), and meta
     fea_list = args['fea_prfx']
     fea_sep = args['fea_sep']
@@ -180,12 +220,12 @@ def run(args):
     meta = data.drop( columns=xdata.columns )
     ydata = meta[[ args['trg_name'] ]]
     del data
-    
+
     # -----------------------------------------------
     #       Scale features
     # -----------------------------------------------
-    xdata = scale_fea(xdata=xdata, scaler_name=args['scaler'])    
-    
+    xdata = scale_fea(xdata=xdata, scaler_name=args['scaler'])
+
     # -----------------------------------------------
     #       Data splits
     # -----------------------------------------------
@@ -196,7 +236,7 @@ def run(args):
         single_split_files = glob( str(splitdir/split_pattern) )
 
         # Get indices for the split
-        assert len(single_split_files) >= 2, f'The split {s} contains only one file.'
+        # assert len(single_split_files) >= 2, f'The split {s} contains only one file.'
         for id_file in single_split_files:
             if 'tr_id' in id_file:
                 tr_id = load_data( id_file ).values.reshape(-1,)
@@ -206,21 +246,37 @@ def run(args):
                 te_id = load_data( id_file ).values.reshape(-1,)
 
         cv_lists = (tr_id, vl_id, te_id)
-        
+
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
-    # import pdb; pdb.set_trace()
-    if args['ml']=='lgb':
+    import pdb; pdb.set_trace()
+    if args['ml'] == 'lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
         framework = 'lightgbm'
         ml_model_def = lgb.LGBMRegressor
         mltype = 'reg'
+
+        if (ps_hpo_dir is not None):
+            pass
+
+        if (ls_hpo_dir is not None):
+            ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
+            ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
+            ml_init_kwargs['random_state'] = None
+
         if (ls_hpo_dir is None) and (ps_hpo_dir is None):
-            ml_init_kwargs = {'n_estimators': 100, 'max_depth': -1,
-                              'learning_rate': 0.1, 'num_leaves': 31,
-                              'n_jobs': 8, 'random_state': None}
+            # ml_init_kwargs = {'n_estimators': 100, 'max_depth': -1,
+            #                   'learning_rate': 0.1, 'num_leaves': 31,
+            #                   'n_jobs': 8, 'random_state': None}
+            ml_init_kwargs = {'n_estimators': args['n_estimators'],
+                              'max_depth': args['max_depth'],
+                              'learning_rate': args['learning_rate'],
+                              'num_leaves': args['num_leaves'],
+                              'n_jobs': args['n_jobs'],
+                              'random_state': None
+                              }
         ml_fit_kwargs = {'verbose': False, 'early_stopping_rounds': 10}
         data_prep_def = None
         keras_callbacks_def = None
@@ -246,16 +302,20 @@ def run(args):
         elif (ls_hpo_dir is not None):
             ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
             ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
-            ml_init_kwargs['input_dim'] = xdata.shape[1] 
+            ml_init_kwargs['input_dim'] = xdata.shape[1]
             ml_init_kwargs['batchnorm'] = args['batchnorm']
 
         elif (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = {'input_dim': xdata.shape[1],
                               'dr_rate': args['dr_rate'],
-                              'opt_name': args['opt'], 'lr': args['lr'],
-                              'batchnorm': args['batchnorm']}
-        ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
-                         'verbose': 1}
+                              'opt_name': args['opt'],
+                              'lr': args['lr'],
+                              'batchnorm': args['batchnorm']
+                              }
+        ml_fit_kwargs = {'epochs': args['epoch'],
+                         'batch_size': args['batch_size'],
+                         'verbose': 1
+                         }
         keras_clr_kwargs = {}
         # keras_clr_kwargs = {'mode': 'trng1', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': None}
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
@@ -279,24 +339,29 @@ def run(args):
         if (ps_hpo_dir is not None):
             ml_init_kwargs = {'in_dim_ge': x_ge.shape[1],
                               'in_dim_dd': x_dd.shape[1],
-                              'batchnorm': args['batchnorm']}
+                              'batchnorm': args['batchnorm']
+                              }
 
         elif (ls_hpo_dir is not None):
             ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
             ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
-            ml_init_kwargs['in_dim_ge'] = x_ge.shape[1] 
-            ml_init_kwargs['in_dim_dd'] = x_dd.shape[1] 
+            ml_init_kwargs['in_dim_ge'] = x_ge.shape[1]
+            ml_init_kwargs['in_dim_dd'] = x_dd.shape[1]
             ml_init_kwargs['batchnorm'] = args['batchnorm']
 
         elif (ls_hpo_dir is None) and (ps_hpo_dir is None):
             ml_init_kwargs = {'in_dim_ge': x_ge.shape[1], 'in_dim_dd': x_dd.shape[1],
                               'dr_rate': args['dr_rate'],
                               'opt_name': args['opt'], 'lr': args['lr'],
-                              'batchnorm': args['batchnorm']}
-        ml_fit_kwargs = {'epochs': args['epoch'], 'batch_size': args['batch_size'],
-                         'verbose': 1}
+                              'batchnorm': args['batchnorm']
+                              }
+        ml_fit_kwargs = {'epochs': args['epoch'],
+                         'batch_size': args['batch_size'],
+                         'verbose': 1
+                         }
         keras_clr_kwargs = {}
 
+    # import pdb; pdb.set_trace()
     # if len(ml_init_kwargs):
     #     model = ml_model_def(**ml_init_kwargs)
     #     model.summary( print_fn=lg.logger.info )
@@ -305,43 +370,49 @@ def run(args):
     #     del model
 
     # -----------------------------------------------
-    #      Learning curve 
-    # -----------------------------------------------        
+    #      Learning curve
+    # -----------------------------------------------
     # LC args
     lc_init_args = {'cv_lists': cv_lists,
-                    'n_splits': args['n_splits'], 'mltype': mltype,
-                    'lc_step_scale': args['lc_step_scale'], 'lc_sizes': args['lc_sizes'],
-                    'min_size': args['min_size'], 'max_size': args['max_size'],
-                    'lc_sizes_arr': args['lc_sizes_arr'], 'outdir': rout, 
-                    'print_fn': print_fn}
-                    
+                    'n_splits': args['n_splits'],
+                    'mltype': mltype,
+                    'lc_step_scale': args['lc_step_scale'],
+                    'lc_sizes': args['lc_sizes'],
+                    'min_size': args['min_size'],
+                    'max_size': args['max_size'],
+                    'lc_sizes_arr': args['lc_sizes_arr'],
+                    'outdir': rout,
+                    'print_fn': print_fn
+                    }
+
     lc_trn_args = {'framework': framework,
-                   'n_jobs': args['n_jobs'], 
+                   'n_jobs': args['n_jobs'],
                    'ml_model_def': ml_model_def,
                    'ml_init_args': ml_init_kwargs,
                    'ml_fit_args': ml_fit_kwargs,
                    'data_prep_def': data_prep_def,
                    'keras_callbacks_def': keras_callbacks_def,
                    'keras_clr_args': keras_clr_kwargs,
-                   'ps_hpo_dir': ps_hpo_dir}
+                   'ps_hpo_dir': ps_hpo_dir
+                   }
 
     # LC object
     # import pdb; pdb.set_trace()
-    lc_obj = LearningCurve( X=xdata, Y=ydata, meta=meta, **lc_init_args )
-    lc_scores = lc_obj.trn_learning_curve( **lc_trn_args )
+    lc_obj = LearningCurve(X=xdata, Y=ydata, meta=meta, **lc_init_args)
+    lc_scores = lc_obj.trn_learning_curve(**lc_trn_args)
 
     # Dump all scores
-    lc_scores.to_csv( rout/'lc_scores.csv', index=False)
+    lc_scores.to_csv(rout/'lc_scores.csv', index=False)
 
     # Load results and plot
     kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
-    lc_plots.plot_lc_many_metric( lc_scores, outdir=rout, **kwargs )
+    lc_plots.plot_lc_many_metric(lc_scores, outdir=rout, **kwargs)
     # kwargs = {'tr_set': 'te', 'xtick_scale': 'linear', 'ytick_scale': 'linear'}
     # lc_plots.plot_lc_many_metric( lc_scores, outdir=rout, **kwargs )
-    
+
     # Dump args
     dump_dict(args, outpath=rout/'args.txt')
-    
+
     # ====================================
     """
     if args['plot_fit']:
@@ -426,7 +497,7 @@ def main(args):
     args = vars(args)
     score = run(args)
     return score
-    
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
