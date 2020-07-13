@@ -92,7 +92,8 @@ def plot_lc_many_metric(scores, outdir:Path, metrics:list=None, **plot_args):
             plt.savefig(outdir/(f'lc.{met}.png'), dpi=200)
     
 
-def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=True, **plot_args):
+def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=True,
+                          ax=None, **plot_args):
     """ 
     Plots LC data points from multiple data split runs, icnluding the median
     score per subset size. 'scores' is the aggregated dataframe of scores
@@ -106,7 +107,7 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
     df = scores[ (scores['metric']==metric_name) & (scores['set']==tr_set) ].reset_index(drop=True)
 
     # Plot all scores
-    ax = None
+    # ax = None
     ax = plot_lc(
         x=df['tr_size'], y=df['score'], yerr=None,
         metric_name=metric_name, label='All scores',
