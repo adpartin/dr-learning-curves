@@ -10,7 +10,7 @@ echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
 # LC_SIZES=7
-# LC_SIZES=12
+LC_SIZES=12
 
 # EPOCH=2
 # EPOCH=10
@@ -27,7 +27,7 @@ export CUDA_VISIBLE_DEVICES=$3
 echo "Source: $SOURCE"
 echo "Model:  $MODEL"
 echo "CUDA device: $CUDA_VISIBLE_DEVICES"
-echo "LC sizes: $lc_sizes"
+echo "LC sizes: $LC_SIZES"
 
 dpath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet 
 spath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits 
@@ -44,15 +44,19 @@ for r in $(seq 1 $n_runs); do
         -dp $dpath \
         -sd $spath \
         --split_id $SPLIT \
-        --fea_prfx ge dd --fea_sep _ \
-        -t AUC -sc stnd --ml $MODEL \
-        --batch_size 32 --epoch $EPOCH \
+        --ml $MODEL \
+        --epoch $EPOCH \
         --batchnorm \
         --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
         --ls_hpo_dir $ls_hpo_dir \
         --rout run$r \
-        --lc_sizes_arr 400000
+        --lc_sizes $LC_SIZES \
+        --min_size 10000 
 
+        # --max_size 700000
+        # --lc_sizes_arr 10000 20000 50000 100000 300000 500000 700000
+
+        # --lc_sizes_arr 400000
         # --ps_hpo_dir $ps_hpo_dir \
         # --lc_sizes $LC_SIZES \
         # --min_size 2024
