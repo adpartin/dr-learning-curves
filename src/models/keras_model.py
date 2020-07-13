@@ -74,7 +74,7 @@ def model_callback_def(outdir, ref_metric='val_loss', **clr_kwargs):
 #         """ ... """
 #         prfx = '' if name is None else f'{name}.'
 #         x = inputs
-        
+
 #         for i, l_size in enumerate(layers):
 #             l_name = prfx + f'fc{i+1}.{l_size}'
 #             x = Dense(l_size, kernel_initializer=self.initializer, name=l_name)(x)
@@ -165,7 +165,7 @@ def nn_reg0_model_def(input_dim:int,
     of keras-tuner.
     """
     initializer='he_uniform'
-        
+
     # units = [1000, 1000, 500, 250, 125, 60, 30] # original
     units = [1000, 1000, 500, 250, 125] # fair
     inputs = keras.layers.Input(shape=(input_dim,), name='inputs')
@@ -175,7 +175,7 @@ def nn_reg0_model_def(input_dim:int,
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     # x = layers.Dense(units[0], activation='relu', kernel_initializer=initializer)(inputs)
     # x = layers.Dense(units[0], activation='relu', kernel_initializer=initializer)(x)
 
@@ -184,40 +184,40 @@ def nn_reg0_model_def(input_dim:int,
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units[2], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units[3], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units[4], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     # x = layers.Dense(units[5], kernel_initializer=initializer)(x)
     # if batchnorm:
     #     x = layers.BatchNormalization()(x)
     # x = layers.Activation('relu')(x)
     # x = layers.Dropout(dr_rate)(x)        
-        
+
     # x = layers.Dense(units[6], kernel_initializer=initializer)(x)
     # if batchnorm:
     #     x = layers.BatchNormalization()(x)
     # x = layers.Activation('relu')(x)
     # x = layers.Dropout(dr_rate)(x)        
-        
+
     outputs = layers.Dense(1, activation='relu', name='outputs')(x)
     model = keras.Model(inputs=inputs, outputs=outputs)
-    
+
     if opt_name.lower()=='adam':
         opt = keras.optimizers.Adam(learning_rate)
     else:
@@ -321,7 +321,7 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     of keras-tuner.
     """
     initializer='he_uniform'
-        
+
     # ---------------------
     # GE
     in_ge = Input(shape=(in_dim_ge,), name='in_ge')
@@ -333,13 +333,13 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units_ge[1], kernel_initializer=initializer, name='g_dense_1')(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     out_ge = layers.Dropout(dr_rate)(x)        
-        
+
     ge = Model(inputs=in_ge, outputs=out_ge, name=f'out_ge')
 
     # ---------------------
@@ -353,13 +353,13 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units_dd[1], kernel_initializer=initializer, name='d_dense_1')(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     out_dd = layers.Dropout(dr_rate)(x)        
-        
+
     dd = Model(inputs=in_dd, outputs=out_dd, name=f'out_dd')
 
     # ---------------------
@@ -373,19 +373,19 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units_mrg[1], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     x = layers.Dense(units_mrg[2], kernel_initializer=initializer)(x)
     if batchnorm:
         x = layers.BatchNormalization()(x)
     x = layers.Activation('relu')(x)
     x = layers.Dropout(dr_rate)(x)        
-        
+
     # x = layers.Dense(units_mrg[3], kernel_initializer=initializer)(x)
     # if batchnorm:
     #     x = layers.BatchNormalization()(x)
@@ -395,11 +395,11 @@ def nn_reg1_model_def(in_dim_ge:int, in_dim_dd:int,
     # ---------------------
     # Output
     outputs = layers.Dense(1, activation='relu', name='outputs')(x)
-    
+
     # ---------------------
     # Input --> Output
     model = Model(inputs=[in_ge, in_dd], outputs=[outputs])
-    
+
     if opt_name.lower()=='adam':
         opt = keras.optimizers.Adam(learning_rate)
     else:
