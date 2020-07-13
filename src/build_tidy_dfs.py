@@ -83,12 +83,12 @@ def dump_dict(dct, outpath='./dict.txt'):
     with open( Path(outpath), 'w' ) as file:
         for k in sorted(dct.keys()):
             file.write('{}: {}\n'.format(k, dct[k]))
-            
+
 
 def groupby_src_and_print(df, print_fn=print):        
     print_fn( df.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index() )
-            
-    
+
+
 def load_rsp(filename, src=None, keep_bad=False, print_fn=print):
     """ Load drug response data. """
     print_fn(f'\nLoad response from ... {DATADIR/RSP_FILENAME}')
@@ -126,13 +126,13 @@ def load_rsp(filename, src=None, keep_bad=False, print_fn=print):
     return rsp
 
 
-def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=np.float32, impute=True):  
+def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=np.float32, impute=True):
     """ Load RNA-Seq data. """
     if ge_norm == 'raw':
         fname = 'combined_rnaseq_data_lincs1000'
     else:
         fname = f'combined_rnaseq_data_lincs1000_{ge_norm}'
-        
+
     print_fn(f'\nLoad RNA-Seq ... {datadir/fname}')
     ge = pd.read_csv(Path(datadir)/fname, sep='\t', low_memory=False,
                       na_values=na_values, warn_bad_lines=True)
@@ -140,7 +140,7 @@ def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=n
     ge = ge.rename(columns={c: fea_prfx_dct['ge']+c for c in ge.columns[1:] if fea_prfx_dct['ge'] not in c}) # prefix ge gene names
     ge.rename(columns={'Sample': 'CELL'}, inplace=True) # rename cell col name
     # ge = ge.set_index(['CELL'])
-    
+
     cell_sources = ['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60']
     idx = ge['CELL'].map(lambda s: s.split('.')[0].lower() in cell_sources)
     ge = ge.loc[idx, :].reset_index(drop=True)
@@ -152,10 +152,10 @@ def load_ge(datadir, ge_norm, print_fn=print, keep_cells_only=True, float_type=n
 
     print_fn(f'ge.shape {ge.shape}')
     return ge
-        
+
 
 def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
-            src=None, impute=True, plot=True, outdir=None):  
+            src=None, impute=True, plot=True, outdir=None):
     """ Load drug descriptors. """
     if 'nci60' in src:
         path = DATADIR/DSC_NCI60_FILENAME
@@ -169,7 +169,7 @@ def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
     dd.rename(columns={'NAME': 'DRUG'}, inplace=True)
 
     # Prefix drug desc names
-    dd = dd.rename(columns={c: fea_prfx_dct['dd']+c for c in dd.columns[1:] if fea_prfx_dct['dd'] not in c}) 
+    dd = dd.rename(columns={c: fea_prfx_dct['dd']+c for c in dd.columns[1:] if fea_prfx_dct['dd'] not in c})
 
     if 'nci60' in src:
         # For NCI60, extract specific columns that were chosen for CTRP
@@ -187,7 +187,7 @@ def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
         # dd.nunique(dropna=True).sort_values()
         print_fn('Drop descriptors with too many NA values ...')
         if plot and (outdir is not None):
-            plot_dd_na_dist(dd=dd, savepath=Path(outdir)/'dd_hist_ratio_of_na.png')
+            plot_dd_na_dist(dd=dd, savepath=Path(outdir, 'dd_hist_ratio_of_na.png'))
         dd = dropna(dd, axis=1, th=dropna_th)
         print_fn(f'dd.shape {dd.shape}')
         # dd.isna().sum().sort_values(ascending=False)
@@ -197,9 +197,9 @@ def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
         # col_idx = dd.nunique(dropna=True).values==1 # takes too long for large dataset
         # dd = dd.iloc[:, ~col_idx]
         # TODO this filtering replaces the filtering above!
-        dd_names = dd.iloc[:,0]
-        dd_fea = dd.iloc[:,1:].copy()
-        col_idx = dd_fea.std(axis=0, skipna=True, numeric_only=True).values==0
+        dd_names = dd.iloc[:, 0]
+        dd_fea = dd.iloc[:, 1:].copy()
+        col_idx = dd_fea.std(axis=0, skipna=True, numeric_only=True).values == 0
         dd_fea = dd_fea.iloc[:, ~col_idx]
         dd = pd.concat([dd_names, dd_fea], axis=1)
         print_fn(f'dd.shape {dd.shape}')
@@ -211,6 +211,9 @@ def load_dd(filename, print_fn=print, dropna_th=0.4, float_type=np.float32,
         # features into categorical and also applies an appropriate imputation.
         # dd.nunique(dropna=true).value_counts()[:10]
         # dd.nunique(dropna=true).value_counts().sort_index()[:10]
+
+        # Save feature names
+        dd.iloc[:1, :].to_csv(Path(outdir, 'dd_col_names.csv'), index=False)
 
     # ---------------------
     # Impute missing values
@@ -235,7 +238,7 @@ def plot_dd_na_dist(dd, savepath=None):
         plt.savefig(savepath, bbox_inches='tight') # dpi=200
     else:
         plt.savefig('dd_hist_ratio_of_na.png', bbox_inches='tight') # dpi=200
-        
+
 
 def dropna(df, axis=0, th=0.05, max_na=None):
     """ Drop rows or cols based on the ratio of NA values along the axis.
@@ -246,7 +249,7 @@ def dropna(df, axis=0, th=0.05, max_na=None):
         axis (int) : 0 to drop rows; 1 to drop cols
     """
     # df = df.copy()
-    axis = 0 if axis==1 else 1
+    axis = 0 if (axis == 1) else 1
 
     if max_na is not None:
         assert max_na >= 0, 'max_na must be >=0.'
@@ -258,9 +261,9 @@ def dropna(df, axis=0, th=0.05, max_na=None):
         df = df.iloc[:, idx.values]
     else:
         df = df.iloc[idx.values, :]
-    return df        
-        
-        
+    return df
+
+
 def plot_rsp_dists(rsp, rsp_cols, savepath=None):
     """ Plot distributions of all response variables.
     Args:
@@ -292,21 +295,46 @@ def plot_rsp_dists(rsp, rsp_cols, savepath=None):
         plt.savefig(savepath, bbox_inches='tight') # dpi=200
     else:
         plt.savefig('rsp_dists.png', bbox_inches='tight')
-        
-        
+
+
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Create tidy data.')
-    parser.add_argument('--drug_fea', type=str, nargs='+', choices=['dd'], default=['dd'], help='Default: [dd].')
-    parser.add_argument('--cell_fea', type=str, nargs='+', choices=['ge'], default=['ge'], help='Default: [ge].')
-    parser.add_argument('--ge_norm', type=str, choices=['raw', 'combat', 'source_scale'], default='raw', help='Default: raw.')
-    parser.add_argument('--gout', type=str, default=OUTDIR, help=f'Default: {OUTDIR}')
 
-    parser.add_argument('--keep_bad', action='store_true', default=False, help='Default: False')
-    parser.add_argument('--dropna_th', type=float, default=0.05, help='Default: 0.05')
-
-    parser.add_argument('--src', nargs='+', default=None,
+    parser.add_argument('--drug_fea',
+                        type=str,
+                        nargs='+',
+                        choices=['dd'],
+                        default=['dd'],
+                        help='Default: [dd].')
+    parser.add_argument('--cell_fea',
+                        type=str,
+                        nargs='+',
+                        choices=['ge'],
+                        default=['ge'],
+                        help='Default: [ge].')
+    parser.add_argument('--ge_norm',
+                        type=str,
+                        choices=['raw', 'combat', 'source_scale'],
+                        default='raw',
+                        help='Default: raw.')
+    parser.add_argument('--gout',
+                        type=str,
+                        default=OUTDIR,
+                        help=f'Default: {OUTDIR}')
+    parser.add_argument('--keep_bad',
+                        action='store_true',
+                        default=False,
+                        help='Default: False')
+    parser.add_argument('--dropna_th',
+                        type=float,
+                        default=0,
+                        help='Default: 0')
+    parser.add_argument('--src',
+                        nargs='+',
+                        default=None,
                         choices=['ccle', 'gcsi', 'gdsc', 'ctrp', 'nci60'],
                         help='Data sources to extract (default: None).')
+
     args = parser.parse_args(args)
     return args
 
@@ -339,20 +367,24 @@ def run(args):
     # -----------------------------------------------
     #     Load response data, and features
     # -----------------------------------------------
-    rsp = load_rsp(RSP_FILENAME, src=args['src'], keep_bad=args['keep_bad'], print_fn=print_fn)
-    ge = load_ge(DATADIR, ge_norm=args['ge_norm'], print_fn=print_fn, float_type=prfx_dtypes['ge'])
+    rsp = load_rsp(RSP_FILENAME, src=args['src'], keep_bad=args['keep_bad'],
+                   print_fn=print_fn)
+    ge = load_ge(DATADIR, ge_norm=args['ge_norm'], print_fn=print_fn,
+                 float_type=prfx_dtypes['ge'])
     dd = load_dd(DSC_FILENAME, dropna_th=args['dropna_th'], print_fn=print_fn,
                  float_type=prfx_dtypes['dd'], src=args['src'], outdir=outdir)
 
     # -----------------------------------------------
     #     Load cell and drug meta
     # -----------------------------------------------
-    cmeta = pd.read_csv(DATADIR/CELL_META_FILENAME, sep='\t', header=None, names=['CELL', 'CANCER_TYPE'])
+    cmeta = pd.read_csv(DATADIR/CELL_META_FILENAME, sep='\t', header=None,
+                        names=['CELL', 'CANCER_TYPE'])
     # cmeta = pd.read_csv(DATADIR/'combined_metadata_2018May.txt', sep='\t').rename(columns={'sample_name': 'CELL', 'core_str': 'CELL_CORE'})
     # cmeta = cmeta[['CELL', 'CELL_CORE', 'tumor_type_from_data_src']]
 
     dmeta = pd.read_csv(DATADIR/DRUG_META_FILENAME, sep='\t')
-    dmeta.rename(columns={'ID': 'DRUG', 'NAME': 'DRUG_NAME', 'CLEAN_NAME': 'DRUG_CLEAN_NAME'}, inplace=True)
+    dmeta.rename(columns={'ID': 'DRUG', 'NAME': 'DRUG_NAME',
+                          'CLEAN_NAME': 'DRUG_CLEAN_NAME'}, inplace=True)
     # TODO: What's going on with CTRP and GDSC? Why counts are not consistent across the fields??
     # dmeta.insert(loc=1, column='SOURCE', value=dmeta['DRUG'].map(lambda x: x.split('.')[0].lower()))
     # print(dmeta.groupby('SOURCE').agg({'DRUG': 'nunique', 'DRUG_NAME': 'nunique', 'DRUG_CLEAN_NAME': 'nunique', 'PUBCHEM': 'nunique'}).reset_index())
@@ -392,9 +424,11 @@ def run(args):
     print_fn(data.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
     del dd
 
-    # Sample from NCI60
+    # Sample from NCI60 (specify the max size)
     # max_sz = 500000
+    # max_sz = 650000
     max_sz = 700000
+    # max_sz = 900000
     if ('nci60' in args['src']) and (data.shape[0] > max_sz):
         print_fn('\nSample the final dataset ...')
         data = data.sample(n=max_sz, random_state=0)
@@ -405,8 +439,9 @@ def run(args):
     for fea_name, fea_prfx in fea_prfx_dct.items():
         cols = [c for c in data.columns if fea_prfx in c]
         tmp = data[cols]
-        mem = 0 if tmp.shape[1]==0 else sys.getsizeof(tmp)/1e9
-        print_fn('Memory occupied by {} features: {} ({:.2f} GB)'.format(fea_name, len(cols), mem))
+        mem = 0 if tmp.shape[1] == 0 else sys.getsizeof(tmp)/1e9
+        print_fn('Memory occupied by {} features: {} ({:.2f} GB)'.format(
+            fea_name, len(cols), mem))
 
     print_fn('\nRuntime: {:.1f} mins'.format( (time()-t0)/60) )
 
@@ -422,38 +457,38 @@ def run(args):
     # x = rsp[target_name].copy()
     # x = x[~x.isna()].values
     # sns.distplot(x, bins=100, ax=ax)
-    # plt.savefig(os.path.join(OUTDIR, target_name+'.png'), bbox_inches='tight') 
+    # plt.savefig(os.path.join(OUTDIR, target_name+'.png'), bbox_inches='tight')
 
     # -----------------------------------------------
     #   Finally save data
     # -----------------------------------------------
     # Save data
-    print_fn(f'\nSave tidy dataframe ...')
+    print_fn('\nSave tidy dataframe ...')
     fname = create_basename(args)
     fpath = outdir/(fname+'.parquet')
     data.to_parquet(fpath)
 
     # Load data
-    print_fn(f'Load tidy dataframe ...')
+    print_fn('Load tidy dataframe ...')
     data_fromfile = pd.read_parquet(fpath)
 
     # Check that the saved data is the same as original one
     print_fn(f'Loaded dataframe is same as original: {data.equals(data_fromfile)}')
 
     # --------------------------------------------------------
-    print_fn('\n{}'.format('-'*80))
+    print_fn('\n{}'.format('-' * 80))
     print_fn(f'Tidy data filepath:\n{os.path.abspath(fpath)}')
-    print_fn('-'*80)
+    print_fn('-' * 80)
     lg.kill_logger()
 
-    
+
 def main(args):
     args = parse_args(args)
     args = vars(args)
     run(args)
     print('Done.')
-    
-    
+
+
 if __name__ == '__main__':
     main(sys.argv[1:])
 
