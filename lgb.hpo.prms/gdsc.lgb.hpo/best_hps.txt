@@ -1,0 +1,4 @@
+n_estimators: 2000
+num_leaves: 150
+max_depth : 20
+learning_rate: 0.05

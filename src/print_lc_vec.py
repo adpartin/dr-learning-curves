@@ -15,13 +15,17 @@ parser.add_argument('-sd', '--splitdir',
                     help='Full path to data splits (default: None).')
 parser.add_argument('--lc_step_scale', default='log', type=str, choices=['log', 'linear'],
                     help='Scale of progressive sampling of subset sizes in a learning curve (log2, log, log10, linear) (default: log).')
-parser.add_argument('--min_size', default=128, type=int,
+parser.add_argument('--min_size',
+                    default=128, type=int,
                     help='The lower bound for the subset size (default: 128).')
-parser.add_argument('--max_size', default=None, type=int,
+parser.add_argument('--max_size',
+                    default=None, type=int,
                     help='The upper bound for the subset size (default: None).')
-parser.add_argument('--lc_sizes', default=5, type=int,
+parser.add_argument('--lc_sizes',
+                    default=5, type=int,
                     help='Number of subset sizes (default: 5).')
-parser.add_argument('--lc_sizes_arr', nargs='+', type=int, default=None,
+parser.add_argument('--lc_sizes_arr',
+                    nargs='+', type=int, default=None,
                     help='List of the actual sizes in the learning curve plot (default: None).')
 args = parser.parse_args()
 args = vars(args)
@@ -38,7 +42,8 @@ lc_init_args = {'lc_step_scale': args['lc_step_scale'],
                 'min_size': args['min_size'],
                 'max_size': args['max_size'],
                 'lc_sizes_arr': args['lc_sizes_arr'],
-                'print_fn': print}
+                'print_fn': print
+                }
 
-lc_obj = LearningCurve( X=xdata, Y=ydata, meta=None, **lc_init_args )
+lc_obj = LearningCurve(X=xdata, Y=ydata, meta=None, **lc_init_args)
 # print(lc_obj.tr_sizes)

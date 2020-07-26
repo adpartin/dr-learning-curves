@@ -427,7 +427,8 @@ def run(args):
     # Sample from NCI60 (specify the max size)
     # max_sz = 500000
     # max_sz = 650000
-    max_sz = 700000
+    # max_sz = 700000
+    max_sz = 750000
     # max_sz = 900000
     if ('nci60' in args['src']) and (data.shape[0] > max_sz):
         print_fn('\nSample the final dataset ...')
