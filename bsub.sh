@@ -1,8 +1,8 @@
 #!/bin/bash
 #BSUB -P med110
 #BSUB -W 06:00
-#BSUB -nnodes 80
-#BSUB -J dr-crv-bsub
+#BSUB -nnodes 60
+#BSUB -J dr-crv-nci60
 # ----------------------------------------------
 
 # Before running bsub, load the required module and activate conda env!
@@ -43,7 +43,7 @@ run_trn () {
             jsrun -n 1 -a 1 -c 4 -g 1 ./jsrun.sh $device $split $trial $src $model \
                 "${lc_sizes_arr[@]}" $cnt exec >${log_dir}/cnt${cnt}_split${split}_trial${trial}.log 2>&1 &
 
-            sleep 2
+            # sleep 1
             cnt=$(($cnt + 1))
         done
     done
@@ -54,35 +54,133 @@ echo "Initial runs counter: ${cnt}"
 # ================
 #   GDSC --> 4 sets
 # lc_sizes_arr="2024 3798 7128 13377 25105 47113 88417"
+# lc_sizes_arr=[128 189 281 417 619 919 1364 2024]
+# lc_sizes_arr="128 189 281 417 619 919 1364"
 # ================
-lc_sizes_arr="2024 3798 7128 13377 25105 47113"
-run_trn gdsc nn_reg0 "${lc_sizes_arr[@]}"
-# run_trn gdsc nn_reg0 "${lc_sizes_arr}"
+# -----------
+# Upper range
+# -----------
+# lc_sizes_arr="2024 3798 7128 13377 25105 47113"
+# run_trn gdsc nn_reg0 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="2024 3798 7128 13377 25105 47113"
-run_trn gdsc nn_reg1 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="2024 3798 7128 13377 25105 47113"
+# run_trn gdsc nn_reg1 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="88417"
-run_trn gdsc nn_reg0 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="88417"
+# run_trn gdsc nn_reg0 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="88417"
-run_trn gdsc nn_reg1 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="88417"
+# run_trn gdsc nn_reg1 "${lc_sizes_arr[@]}"
+
+# -----------
+# Lower range
+# -----------
+# lc_sizes_arr="128 189 281 417 619 919 1364"
+# run_trn gdsc nn_reg0 "${lc_sizes_arr[@]}"
+
+# lc_sizes_arr="128 189 281 417 619 919 1364"
+# run_trn gdsc nn_reg1 "${lc_sizes_arr[@]}"
 
 # ================
 #   CTRP --> 4 sets
 # lc_sizes_arr="2024 4455 9809 21596 47545 104673 230442"
+# lc_sizes_arr=[128 189 281 417 619 919 1364 2024]
+# lc_sizes_arr="128 189 281 417 619 919 1364"
 # ================
-lc_sizes_arr="2024 4455 9809 21596 47545 104673"
-run_trn ctrp nn_reg0 "${lc_sizes_arr[@]}"
+# -----------
+# Upper range
+# -----------
+# lc_sizes_arr="2024 4455 9809 21596 47545 104673"
+# run_trn ctrp nn_reg0 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="2024 4455 9809 21596 47545 104673"
-run_trn ctrp nn_reg1 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="2024 4455 9809 21596 47545 104673"
+# run_trn ctrp nn_reg1 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="230442"
-run_trn ctrp nn_reg0 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="230442"
+# run_trn ctrp nn_reg0 "${lc_sizes_arr[@]}"
 
-lc_sizes_arr="230442"
-run_trn ctrp nn_reg1 "${lc_sizes_arr[@]}"
+# lc_sizes_arr="230442"
+# run_trn ctrp nn_reg1 "${lc_sizes_arr[@]}"
+
+# -----------
+# Lower range
+# -----------
+# lc_sizes_arr="128 189 281 417 619 919 1364"
+# run_trn ctrp nn_reg0 "${lc_sizes_arr[@]}"
+
+# lc_sizes_arr="128 189 281 417 619 919 1364"
+# run_trn ctrp nn_reg1 "${lc_sizes_arr[@]}"
+
+# ================
+#   NCI60 --> 4 sets
+# set= "2024 3919 7588 14694 28453 55095 106683 206575 400000"
+# set1="2024 3919                                      400000"
+# set2="          7588 14694                    206575       "
+# set3="                     28453 55095 106683              "
+
+# set= "2024 3272 5292 8557 13837 22375 36181 58506 94606 152979 247369 400000"
+# set1="2024                      22375 36181                           400000"
+# set2="     3272           13837             58506              247369       "
+# set3="          5292 8557                         94606 152979              "
+# ================
+# -----------
+# Upper range
+# -----------
+# set1="2024 22375 36181 400000"
+# set2="3272 13837 58506 247369"
+# set3="5292 8557  94606 152979"
+
+# run_trn nci60 nn_reg1 "${set1[@]}"
+# run_trn nci60 nn_reg1 "${set2[@]}"
+# run_trn nci60 nn_reg1 "${set3[@]}"
+
+# run_trn nci60 nn_reg0 "${set1[@]}"
+# run_trn nci60 nn_reg0 "${set2[@]}"
+# run_trn nci60 nn_reg0 "${set3[@]}"
+
+# ================
+#   NCI60 --> 4 sets
+# set_A="5000 8658 14992 25962 44957 77850 134809 233442 404240 700000"
+# set_B="453000 513000 580000 658000"
+# ================
+# -----------
+# Upper range
+# -----------
+set1="700000 500000"
+set2="650000 600000"
+set3="400000 235000 135000 80000 45000 25000 15000 10000 5000 3000"
+
+run_trn nci60 nn_reg1 "${set1[@]}"
+run_trn nci60 nn_reg0 "${set1[@]}"
+
+run_trn nci60 nn_reg1 "${set2[@]}"
+run_trn nci60 nn_reg0 "${set2[@]}"
+
+run_trn nci60 nn_reg1 "${set3[@]}"
+run_trn nci60 nn_reg0 "${set3[@]}"
+
+# ================
+#   Top21 --> 4 sets
+# lc_sizes_arr="2024 4868 11711 28171 67766 163011 392121"
+#set="2024 3034 4550 6823 10232 15342 23006 34497 51727 77564 116306 174398 261505 392121"
+# set1="2024           6823             23006             77564                      392121"
+# set2="     3034           10232             34497             116306        261505       "
+# set3="          4550            15342             51727              174398              "
+# ================
+# -----------
+# Upper range
+# -----------
+# set1="2024 6823  23006 77564  392121"
+# set2="3034 10232 34497 116306 261505"
+# set3="4550 15342 51727 174398"
+
+# run_trn top21 nn_reg1 "${set1[@]}"
+# run_trn top21 nn_reg1 "${set2[@]}"
+# run_trn top21 nn_reg1 "${set3[@]}"
+
+# run_trn top21 nn_reg0 "${set1[@]}"
+# run_trn top21 nn_reg0 "${set2[@]}"
+# run_trn top21 nn_reg0 "${set3[@]}"
 
 echo "Final runs counter: ${cnt}"
 # ========================================================================

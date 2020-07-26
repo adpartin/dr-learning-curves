@@ -324,15 +324,15 @@ class LearningCurve():
             te_id = self.te_dct[ split_num ]
 
             # Extract Train set T, Validation set V, and Test set E
-            xtr_df, ytr_df, mtr_df = self.get_data_by_id( tr_id ) # samples from xtr are sequentially sampled for TRAIN
-            xvl_df, yvl_df, mvl_df = self.get_data_by_id( vl_id ) # fixed set of VAL samples for the current CV split
-            xte_df, yte_df, mte_df = self.get_data_by_id( te_id ) # fixed set of TEST samples for the current CV split
+            xtr_df, ytr_df, mtr_df = self.get_data_by_id(tr_id) # samples from xtr are sequentially sampled for TRAIN
+            xvl_df, yvl_df, mvl_df = self.get_data_by_id(vl_id) # fixed set of VAL samples for the current CV split
+            xte_df, yte_df, mte_df = self.get_data_by_id(te_id) # fixed set of TEST samples for the current CV split
 
             # New
             # xvl = np.asarray( xvl_df )
-            yvl = np.asarray( yvl_df )
+            yvl = np.asarray(yvl_df)
             # xte = np.asarray( xte_df )
-            yte = np.asarray( yte_df )
+            yte = np.asarray(yte_df)
 
             # Loop over subset sizes (iterate across the dataset sizes and train)
             for i, tr_sz in enumerate(self.tr_sizes):
@@ -346,7 +346,7 @@ class LearningCurve():
 
                 # New
                 # xtr_sub = np.asarray( xtr_sub_df )
-                ytr_sub = np.asarray( ytr_sub_df )
+                ytr_sub = np.asarray(ytr_sub_df)
 
                 # HP set per tr size
                 # import pdb; pdb.set_trace()
@@ -354,7 +354,7 @@ class LearningCurve():
                     # files = glob( str(self.ps_hpo_dir/'tr_sz*') )
                     # hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
                     # hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
-                    keys_vec = list( self.hp_sizes.keys() )
+                    keys_vec = list(self.hp_sizes.keys())
                     idx_min = np.argmin( np.abs( keys_vec - tr_sz ) )
                     hp_path = self.hp_sizes[ keys_vec[idx_min] ]
                     hp_path = hp_path/'best_hps.txt'
@@ -388,7 +388,6 @@ class LearningCurve():
                         model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                         split=split_num, tr_sz=tr_sz, eval_set=None)
                 elif self.framework=='keras':
-                    # model, trn_outdir, runtime = self.trn_keras_model(model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                     model, trn_outdir, runtime = self.trn_keras_model(
                         model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                         split=split_num, tr_sz=tr_sz, eval_set=eval_set)
@@ -407,9 +406,9 @@ class LearningCurve():
                 dump_dict(model_args, trn_outdir/'model_args.txt')
 
                 # Save plot of target distribution
-                plot_hist(ytr_sub, title=f'(Train size={tr_sz})',   path=trn_outdir/'hist_tr.png')
-                plot_hist(yvl,     title=f'(Val size={len(yvl)})',  path=trn_outdir/'hist_vl.png')
-                plot_hist(yte,     title=f'(Test size={len(yte)})', path=trn_outdir/'hist_te.png')
+                plot_hist(ytr_sub, title=f'(Train size={tr_sz})', path=trn_outdir/'hist_tr.png')
+                plot_hist(yvl, title=f'(Val size={len(yvl)})', path=trn_outdir/'hist_vl.png')
+                plot_hist(yte, title=f'(Test size={len(yte)})', path=trn_outdir/'hist_te.png')
 
                 # Calc preds and scores
                 # ... training set
@@ -450,8 +449,10 @@ class LearningCurve():
                 te_scores_all.append( te_scores )
 
                 # Dump intermediate scores
-                scores = pd.concat([scores_to_df([tr_scores]), scores_to_df([vl_scores]), scores_to_df([te_scores])], axis=0)
-                scores.to_csv( trn_outdir/'scores.csv', index=False )
+                scores = pd.concat([scores_to_df([tr_scores]),
+                                    scores_to_df([vl_scores]),
+                                    scores_to_df([te_scores])], axis=0)
+                scores.to_csv(trn_outdir/'scores.csv', index=False)
                 del trn_outdir, scores
 
             # Dump intermediate results (this is useful if the run terminates before run ends)
@@ -459,20 +460,20 @@ class LearningCurve():
             # scores_all_df_tmp.to_csv( self.outdir / ('tmp_lc_scores_split' + str(split_num) + '.csv'), index=False )
 
         # Scores to df
-        tr_scores_df = scores_to_df( tr_scores_all )
-        vl_scores_df = scores_to_df( vl_scores_all )
-        te_scores_df = scores_to_df( te_scores_all )
+        tr_scores_df = scores_to_df(tr_scores_all)
+        vl_scores_df = scores_to_df(vl_scores_all)
+        te_scores_df = scores_to_df(te_scores_all)
         scores_df = pd.concat([tr_scores_df, vl_scores_df, te_scores_df], axis=0)
 
         # Dump final results
-        tr_scores_df.to_csv( self.outdir/'tr_lc_scores.csv', index=False)
-        vl_scores_df.to_csv( self.outdir/'vl_lc_scores.csv', index=False)
-        te_scores_df.to_csv( self.outdir/'te_lc_scores.csv', index=False)
+        tr_scores_df.to_csv(self.outdir/'tr_lc_scores.csv', index=False)
+        vl_scores_df.to_csv(self.outdir/'vl_lc_scores.csv', index=False)
+        te_scores_df.to_csv(self.outdir/'te_lc_scores.csv', index=False)
         # scores_df.to_csv( self.outdir/'lc_scores.csv', index=False) 
 
         # Runtime df
-        runtime_df = pd.DataFrame.from_records(runtime_records, columns=['split', 'tr_sz', 'time'])
-        runtime_df.to_csv( self.outdir/'runtime.csv', index=False)
+        runtime_df = pd.DataFrame.from_records(runtime_records, columns=['split', 'tr_sz', 'time(s)'])
+        runtime_df.to_csv(self.outdir/'runtime.csv', index=False)
 
         return scores_df
 
@@ -500,20 +501,21 @@ class LearningCurve():
     def trn_keras_model(self, model, xtr_sub, ytr_sub, split, tr_sz, eval_set=None):
         """ Train and save Keras model. """
         trn_outdir = self.create_trn_outdir(split, tr_sz)
-                
+
         # Fit params
         ml_fit_args = self.ml_fit_args.copy()
         ml_fit_args['validation_data'] = eval_set
         ml_fit_args['callbacks'] = self.keras_callbacks_def(
                 outdir=trn_outdir, # **self.keras_callbacks_kwargs,
                 **self.keras_clr_args)
-        
+
         # Train model
         t0 = time()
         history = model.fit(xtr_sub, ytr_sub, **ml_fit_args)
-        runtime = (time() - t0)/60
+        runtime = time() - t0
         save_krs_history(history, outdir=trn_outdir)
-        plot_prfrm_metrics(history, title=f'Train size: {tr_sz}', skp_ep=10, add_lr=True, outdir=trn_outdir)
+        plot_prfrm_metrics(history, title=f'Train size: {tr_sz}', skp_ep=10,
+                           add_lr=True, outdir=trn_outdir)
 
         # Remove key (we'll dump this dict so we don't need to print all the eval set)
         # ml_fit_args.pop('validation_data', None)
@@ -525,7 +527,7 @@ class LearningCurve():
         if model_path.exists():
             # model = keras.models.load_model( str(model_path) )
             import tensorflow as tf
-            model = tf.keras.models.load_model( str(model_path), custom_objects={'r2_krs': r2_krs} )
+            model = tf.keras.models.load_model(str(model_path), custom_objects={'r2_krs': r2_krs})
         else:
             model = None
         return model, trn_outdir, runtime
@@ -542,7 +544,7 @@ class LearningCurve():
         # Train and save model
         t0 = time()
         model.fit(xtr_sub, ytr_sub, **ml_fit_args)
-        runtime = (time() - t0)/60
+        runtime = time() - t0
 
         # Remove key (we'll dump this dict so we don't need to print all the eval set)
         ml_fit_args.pop('eval_set', None)
@@ -563,7 +565,7 @@ class LearningCurve():
         # Train and save model
         t0 = time()
         model.fit(xtr_sub, ytr_sub, **ml_fit_args)
-        runtime = (time() - t0)/60
+        runtime = time() - t0
         if self.save_model:
             joblib.dump(model, filename = trn_outdir / ('model.'+self.model_name+'.pkl') )
         return model, trn_outdir, runtime

@@ -162,14 +162,14 @@ def parse_args(args):
 
 def run(args):
     t0 = time()
-    datapath = Path( args['datapath'] ).resolve()
+    datapath = Path(args['datapath']).resolve()
     ls_hpo_dir = None if args['ls_hpo_dir'] is None else Path(args['ls_hpo_dir']).resolve()
     ps_hpo_dir = None if args['ps_hpo_dir'] is None else Path(args['ps_hpo_dir']).resolve()
 
     if args['splitdir'] is None:
         splitdir = None
     else:
-        splitdir = Path( args['splitdir'] ).resolve()
+        splitdir = Path(args['splitdir']).resolve()
     split_id = args['split_id']
 
     # -----------------------------------------------
@@ -200,8 +200,8 @@ def run(args):
     # -----------------------------------------------
     #       Logger
     # -----------------------------------------------
-    lg = Logger( rout/'lc.log' )
-    print_fn = get_print_func( lg.logger )
+    lg = Logger(rout/'lc.log')
+    print_fn = get_print_func(lg.logger)
     print_fn(f'File path: {filepath}')
     print_fn(f'\n{pformat(args)}')
     dump_dict(args, outpath=rout/'trn.args.txt') # dump args.
@@ -217,7 +217,7 @@ def run(args):
     fea_list = args['fea_prfx']
     fea_sep = args['fea_sep']
     xdata = extract_subset_fea(data, fea_list=fea_list, fea_sep=fea_sep)
-    meta = data.drop( columns=xdata.columns )
+    meta = data.drop(columns=xdata.columns)
     ydata = meta[[ args['trg_name'] ]]
     del data
 
@@ -239,18 +239,18 @@ def run(args):
         # assert len(single_split_files) >= 2, f'The split {s} contains only one file.'
         for id_file in single_split_files:
             if 'tr_id' in id_file:
-                tr_id = load_data( id_file ).values.reshape(-1,)
+                tr_id = load_data(id_file).values.reshape(-1,)
             elif 'vl_id' in id_file:
-                vl_id = load_data( id_file ).values.reshape(-1,)
+                vl_id = load_data(id_file).values.reshape(-1,)
             elif 'te_id' in id_file:
-                te_id = load_data( id_file ).values.reshape(-1,)
+                te_id = load_data(id_file).values.reshape(-1,)
 
         cv_lists = (tr_id, vl_id, te_id)
 
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     if args['ml'] == 'lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
@@ -263,7 +263,7 @@ def run(args):
 
         if (ls_hpo_dir is not None):
             ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
-            ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
+            ml_init_kwargs = read_hp_prms(ls_hpo_fpath)
             ml_init_kwargs['random_state'] = None
 
         if (ls_hpo_dir is None) and (ps_hpo_dir is None):
@@ -301,7 +301,7 @@ def run(args):
 
         elif (ls_hpo_dir is not None):
             ls_hpo_fpath = ls_hpo_dir/'best_hps.txt'
-            ml_init_kwargs = read_hp_prms( ls_hpo_fpath )
+            ml_init_kwargs = read_hp_prms(ls_hpo_fpath)
             ml_init_kwargs['input_dim'] = xdata.shape[1]
             ml_init_kwargs['batchnorm'] = args['batchnorm']
 
@@ -405,8 +405,8 @@ def run(args):
     lc_scores.to_csv(rout/'lc_scores.csv', index=False)
 
     # Load results and plot
-    kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
-    lc_plots.plot_lc_many_metric(lc_scores, outdir=rout, **kwargs)
+    # kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
+    # lc_plots.plot_lc_many_metric(lc_scores, outdir=rout, **kwargs)
     # kwargs = {'tr_set': 'te', 'xtick_scale': 'linear', 'ytick_scale': 'linear'}
     # lc_plots.plot_lc_many_metric( lc_scores, outdir=rout, **kwargs )
 
@@ -477,19 +477,20 @@ def run(args):
         plt.savefig(args['outdir']/f'power_law_ext_{metric_name}.png')
     """
     # ====================================
-    
+
     # ------------------------------------------------------
     if (time()-t0)//3600 > 0:
         print_fn('Runtime: {:.1f} hrs'.format( (time()-t0)/3600) )
     else:
         print_fn('Runtime: {:.1f} min'.format( (time()-t0)/60) )
-    
+
     print_fn('Done.')
     lg.kill_logger()
     del xdata, ydata
 
     # This is required for HPO via UPF workflow on Theta HPC
-    return lc_scores[(lc_scores['metric'] == args['hpo_metric']) & (lc_scores['set'] == 'te')].values[0][3]
+    # return lc_scores[(lc_scores['metric'] == args['hpo_metric']) & (lc_scores['set'] == 'te')].values[0][3]
+    return None
 
 
 def main(args):
