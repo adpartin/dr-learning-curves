@@ -2,6 +2,7 @@
 
 # Example:
 # lc_keras.bash gdsc nn_reg0 0
+# lc_keras.bash gdsc2 nn_reg0 0
 
 # Call this function from the main project dir!
 OUTDIR=lc.out
@@ -9,8 +10,8 @@ mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
-# LC_SIZES=7
-LC_SIZES=12
+LC_SIZES=7
+# LC_SIZES=12
 
 EPOCH=2
 # EPOCH=10
@@ -29,8 +30,9 @@ echo "Model:  $MODEL"
 echo "CUDA device: $CUDA_VISIBLE_DEVICES"
 echo "LC sizes: $LC_SIZES"
 
-dpath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet 
-spath=data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits 
+data_version=July2020
+dpath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.parquet 
+spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.splits 
 # ps_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ps_hpo
 ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
 
@@ -50,8 +52,11 @@ for r in $(seq 1 $n_runs); do
         --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
         --ls_hpo_dir $ls_hpo_dir \
         --rout run$r \
-        --lc_sizes_arr 700000 500000 
+        --min_size 10000 \
+        --lc_sizes $LC_SIZES
 
+
+        # --lc_sizes_arr 700000 500000 
 
         # --lc_sizes $LC_SIZES \
         # --min_size 10000 

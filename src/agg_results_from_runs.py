@@ -36,31 +36,34 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves.')
 
     # Input data
-    parser.add_argument('--res_dir', required=True, default=None, type=str,
+    parser.add_argument('--res_dir',
+                        required=True,
+                        default=None,
+                        type=str,
                         help='Global dir where learning curve are located (default: None).')
     args, other_args = parser.parse_known_args(args)
     return args
 
 
-def agg_scores( run_dirs ):
+def agg_scores(run_dirs):
     """ Aggregate results from LC runs. """
     scores = []
     
     for i, r in enumerate(run_dirs):
-        dpath = Path(r)/'lc_scores.csv'
+        dpath = Path(r, 'lc_scores.csv')
         if not dpath.exists():
             continue
 
-        scr = pd.read_csv( dpath )
+        scr = pd.read_csv(dpath)
         scr['split'] = Path(r).name
-        scores.append( scr )
+        scores.append(scr)
 
-    scores = pd.concat( scores, axis=0 )
+    scores = pd.concat(scores, axis=0)
     return scores
 
 
 def run(args):
-    res_dir = Path( args['res_dir'] ).resolve()
+    res_dir = Path(args['res_dir']).resolve()
     dir_name = res_dir.name # .split('.')[1]
     
     run_dirs = glob( str(res_dir/'run*') )
@@ -85,7 +88,7 @@ def main(args):
     args = parse_args(args)
     args = vars(args)
     score = run(args)
-    return score
+    return None
     
 
 if __name__ == '__main__':

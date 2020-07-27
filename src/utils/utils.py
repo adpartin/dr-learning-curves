@@ -65,7 +65,7 @@ def drop_dup_rows(data, print_fn=print):
 
 def dump_dict(dct, outpath='./dict.txt'):
     """ Dump dict into file. """
-    with open( Path(outpath), 'w' ) as file:
+    with open(Path(outpath), 'w') as file:
         for k in sorted(dct.keys()):
             file.write('{}: {}\n'.format(k, dct[k]))
 

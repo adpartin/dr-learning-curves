@@ -5,6 +5,6 @@
 sources=('gdsc' 'ctrp' 'ccle')
 
 for SOURCE in ${sources[@]}; do
-    python src/build_tidy_dfs.py --src $SOURCE
+    python src/build_dfs.py --src $SOURCE
 done
 
