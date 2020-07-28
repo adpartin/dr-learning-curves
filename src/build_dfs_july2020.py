@@ -25,7 +25,7 @@ import seaborn as sns
 
 # Utils
 from utils.classlogger import Logger
-from utils.utils import load_data, dump_dict, get_print_func
+from utils.utils import load_data, dump_dict, get_print_func, dropna
 from utils.impute import impute_values
 from ml.scale import scale_fea
 from ml.data import extract_subset_fea
@@ -61,7 +61,6 @@ filepath = Path(__file__).resolve().parent
 # # CELL_META_FILENAME = 'combined_metadata_2018May.txt'
 
 
-
 # Settings
 na_values = ['na', '-', '']
 fea_prfx_dct = {'ge': 'ge_', 'cnv': 'cnv_', 'snp': 'snp_',
@@ -93,6 +92,11 @@ def create_outdir(outdir, args):
 
 def groupby_src_and_print(df, print_fn=print):        
     print_fn( df.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index() )
+
+
+def add_fea_prfx(df, prfx: str, id0: int):
+    """ Add prefix feature columns. """
+    return df.rename(columns={s: prfx+str(s) for s in df.columns[id0:]})
 
 
 def load_rsp(fpath, src=None, r2fit_th=None, print_fn=print):
@@ -149,111 +153,52 @@ def load_ge(fpath, print_fn=print, float_type=np.float32):
     ge = pd.read_csv(fpath, sep='\t', na_values=na_values)
     ge.rename(columns={'Sample': 'CELL'}, inplace=True)
 
-    fea_start_id = 1
-    col_rename = {c: fea_prfx_dct['ge']+c for c in ge.columns[fea_start_id:]
-                  if fea_prfx_dct['ge'] not in c}
-    ge = ge.rename(columns=col_rename)  # prefix ge gene names
+    fea_id0 = 1
+    ge = add_fea_prfx(ge, prfx=fea_prfx_dct['ge'], id0=fea_id0)
 
     if sum(ge.isna().sum() > 0):
         # ge = impute_values(ge, print_fn=print_fn)
 
-        print('Columns with NaNs: {}'.format( sum(ge.iloc[:, fea_start_id:].isna().sum() > 0) ))
+        print_fn('Columns with NaNs: {}'.format( sum(ge.iloc[:, fea_id0:].isna().sum() > 0) ))
         imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
         # imputer = KNNImputer(missing_values=np.nan, n_neighbors=5,
         #                      weights='uniform', metric='nan_euclidean',
         #                      add_indicator=False)
-        ge.iloc[:, fea_start_id:] = imputer.fit_transform(ge.iloc[:, fea_start_id:].values)
-        print('Columns with NaNs: {}'.format( sum(ge.iloc[:, fea_start_id:].isna().sum() > 0) ))
+        ge.iloc[:, fea_id0:] = imputer.fit_transform(ge.iloc[:, fea_id0:].values)
+        print_fn('Columns with NaNs: {}'.format( sum(ge.iloc[:, fea_id0:].isna().sum() > 0) ))
 
     # Cast features (casting to float16 changes the shape. why?)
-    ge = ge.astype(dtype={c: float_type for c in ge.columns[fea_start_id:]})
+    ge = ge.astype(dtype={c: float_type for c in ge.columns[fea_id0:]})
     print_fn(f'ge.shape {ge.shape}')
     return ge
 
 
-def load_dd(fpath, print_fn=print, dropna_th=0.4, float_type=np.float32,
-            src=None, impute=True, plot=True, outdir=None):
+def load_dd(fpath, print_fn=print, dropna_th=0.1, float_type=np.float32, src=None):
     """ Load drug descriptors. """
-    # if 'nci60' in src:
-    #     fpath = DATADIR/DSC_NCI60_FILENAME
-    # else:
-    #     fpath = DATADIR/DSC_FILENAME
-    print_fn(f'\nLoad drug descriptors ... {fpath}')
+    print_fn(f'\nLoad descriptors ... {fpath}')
     dd = pd.read_csv(fpath, sep='\t', na_values=na_values)
     dd.rename(columns={'ID': 'DRUG'}, inplace=True)
 
-    # Prefix drug desc names
-    fea_start_id = 4
-    col_rename = {c: fea_prfx_dct['dd']+c for c in dd.columns[fea_start_id:]
-                  if fea_prfx_dct['dd'] not in c}
-    dd = dd.rename(columns=col_rename)
+    fea_id0 = 4
+    # dd = add_fea_prfx(dd, prfx=fea_prfx_dct['dd'], id0=fea_id0)
 
-
-    # if 'nci60' in src:
-    #     # For NCI60, extract specific columns that were chosen for CTRP
-    #     col_names = pd.read_csv(OUTDIR/'dd_col_names.csv').columns.tolist()
-    #     dd = dd[col_names]
-
-    #     # Filter sample with too many NaN values
-    #     dd = dropna(dd, axis=0, max_na=0)
-
-    # else:
-    #     # ------------------
-    #     # Filter descriptors
-    #     # ------------------
-    #     # # dd.nunique(dropna=True).value_counts()
-    #     # # dd.nunique(dropna=True).sort_values()
-    #     # print_fn('Drop descriptors with too many NA values ...')
-    #     # if plot and (outdir is not None):
-    #     #     plot_dd_na_dist(dd=dd, savepath=Path(outdir, 'dd_hist_ratio_of_na.png'))
-    #     # dd = dropna(dd, axis=1, th=dropna_th)
-    #     # print_fn(f'dd.shape {dd.shape}')
-    #     # # dd.isna().sum().sort_values(ascending=False)
-
-    #     # There are descriptors where there is a single unique value excluding NA (drop those)
-    #     print_fn('Drop descriptors that have a single unique value (excluding NAs) ...')
-    #     # col_idx = dd.nunique(dropna=True).values==1  # takes too long for large dataset
-    #     # dd = dd.iloc[:, ~col_idx]
-    #     # TODO this filtering replaces the filtering above!
-    #     dd_names = dd.iloc[:, 0]
-    #     dd_fea = dd.iloc[:, fea_start_id:].copy()
-    #     col_idx = dd_fea.std(axis=0, skipna=True, numeric_only=True).values == 0
-    #     dd_fea = dd_fea.iloc[:, ~col_idx]
-    #     dd = pd.concat([dd_names, dd_fea], axis=1)
-    #     print_fn(f'dd.shape {dd.shape}')
-
-    #     # There are still lots of descriptors which have only a few unique values
-    #     # we can categorize those values. e.g.: 564 descriptors have only 2 unique vals,
-    #     # and 154 descriptors have only 3 unique vals, etc.
-    #     # todo: use utility code from p1h_alex/utils/data_preproc.py that transform those
-    #     # features into categorical and also applies an appropriate imputation.
-    #     # dd.nunique(dropna=true).value_counts()[:10]
-    #     # dd.nunique(dropna=true).value_counts().sort_index()[:10]
-
-    #     # Save feature names
-    #     dd.iloc[:1, :].to_csv(Path(outdir, 'dd_col_names.csv'), index=False)
-
-    # ---------------------
-    # Impute missing values
-    # ---------------------
-    # if impute:
-    #     print_fn('Impute NA values ...')
-    #     dd = impute_values(data=dd, print_fn=print_fn)
-
-    if sum(dd.isna().sum() > 0):
-        print_fn('Columns with all NaN values: {}'.format(
-            sum(dd.isna().sum(axis=0).sort_values(ascending=False)==dd.shape[0])))
-        print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_start_id:].isna().sum() > 0) ))
-        imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
-        # imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
-        # imputer = KNNImputer(missing_values=np.nan, n_neighbors=5,
-        #                      weights='uniform', metric='nan_euclidean',
-        #                      add_indicator=False)
-        dd.iloc[:, fea_start_id:] = imputer.fit_transform(dd.iloc[:, fea_start_id:].values)
-        print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_start_id:].isna().sum() > 0) ))
+    if 'nci60' in src:
+        dd = dropna(dd, axis=0, th=dropna_th)
+    else:
+        if sum(dd.isna().sum() > 0):
+            print_fn('Columns with all NaN values: {}'.format(
+                sum(dd.isna().sum(axis=0).sort_values(ascending=False)==dd.shape[0])))
+            print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
+            imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
+            # imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+            # imputer = KNNImputer(missing_values=np.nan, n_neighbors=5,
+            #                      weights='uniform', metric='nan_euclidean',
+            #                      add_indicator=False)
+            dd.iloc[:, fea_id0:] = imputer.fit_transform(dd.iloc[:, fea_id0:].values)
+            print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
 
     # Cast features
-    dd = dd.astype(dtype={c: float_type for c in dd.columns[fea_start_id:]})
+    dd = dd.astype(dtype={c: float_type for c in dd.columns[fea_id0:]})
     print_fn(f'dd.shape {dd.shape}')
     return dd
 
@@ -270,30 +215,6 @@ def plot_dd_na_dist(dd, savepath=None):
         plt.savefig(savepath, bbox_inches='tight') # dpi=200
     else:
         plt.savefig('dd_hist_ratio_of_na.png', bbox_inches='tight') # dpi=200
-
-
-def dropna(df, axis=0, th=0.05, max_na=None):
-    """ Drop rows or cols based on the ratio of NA values along the axis.
-    Instead of ratio, you can also specify the max number of NA.
-    Args:
-        th (float) : if the ratio of NA values along the axis is larger that th, then drop all the values
-        max_na (int) : specify max allowable number of na (instead of specifying the ratio)
-        axis (int) : 0 to drop rows; 1 to drop cols
-    """
-    # df = df.copy()
-    axis = 0 if (axis == 1) else 1
-
-    if max_na is not None:
-        assert max_na >= 0, 'max_na must be >=0.'
-        idx = df.isna().sum(axis=axis) <= max_na
-    else:
-        idx = df.isna().sum(axis=axis)/df.shape[axis] <= th
-
-    if axis == 0:
-        df = df.iloc[:, idx.values]
-    else:
-        df = df.iloc[idx.values, :]
-    return df
 
 
 def plot_rsp_dists(rsp, rsp_cols, savepath=None):
@@ -377,7 +298,7 @@ def parse_args(args):
 
 
 def run(args):
-    # import pdb; pdb.set_trace()
+    import ipdb; ipdb.set_trace(context=5)
     t0 = time()
     rsp_cols = ['AUC', 'AUC1', 'EC50', 'EC50se', 'R2fit',
                 'Einf', 'IC50', 'HS', 'AAC1', 'DSS1']
@@ -416,15 +337,13 @@ def run(args):
 
     # Merge with ge
     print_fn('\nMerge with expression (ge) ...')
-    data = pd.merge(data, ge, on='CELL', how='inner')  # inner join to keep samples that have ge
-    print_fn(f'data.shape {data.shape}\n')
+    data = pd.merge(data, ge, on='CELL', how='inner')
     groupby_src_and_print(data, print_fn=print_fn)
     del ge
 
     # Merge with dd
     print_fn('\nMerge with descriptors (dd) ...')
-    data = pd.merge(data, dd, on='DRUG', how='inner')  # inner join to keep samples that have dd
-    print_fn(f'data.shape {data.shape}\n')
+    data = pd.merge(data, dd, on='DRUG', how='inner')
     groupby_src_and_print(data, print_fn=print_fn)
     del dd
 
@@ -443,8 +362,8 @@ def run(args):
     print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))
     for fea_name, fea_prfx in fea_prfx_dct.items():
         cols = [c for c in data.columns if fea_prfx in c]
-        tmp = data[cols]
-        mem = 0 if tmp.shape[1] == 0 else sys.getsizeof(tmp)/1e9
+        aa = data[cols]
+        mem = 0 if aa.shape[1] == 0 else sys.getsizeof(aa)/1e9
         print_fn('Memory occupied by {} features: {} ({:.2f} GB)'.format(
             fea_name, len(cols), mem))
 
@@ -470,7 +389,7 @@ def run(args):
     # Save data
     print_fn('\nSave tidy dataframe ...')
     fname = create_basename(args)
-    fpath = outdir/(fname+'.parquet')
+    fpath = outdir/(fname + '.parquet')
     data.to_parquet(fpath)
 
     # Load data

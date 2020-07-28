@@ -1,29 +1,13 @@
-from __future__ import print_function, division
-
 import warnings
 warnings.filterwarnings('ignore')
 
 import os
 import sys
 from pathlib import Path
-# from time import time
-# import argparse
 from pprint import pprint, pformat
-# from glob import glob
 
-# import matplotlib
-# matplotlib.use('Agg')
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-
-# import sklearn
 import numpy as np
 import pandas as pd
-
-# from scipy import stats
-# from pandas.api.types import is_string_dtype
-# from sklearn.preprocessing import LabelEncoder
-
 
 def verify_path(path):
     """ Verify that the path exists. """
@@ -61,6 +45,34 @@ def drop_dup_rows(data, print_fn=print):
     cnt1 = data.shape[0]; print_fn('Samples: {}'.format( cnt1 ));
     print_fn('Dropped duplicates: {}'.format( cnt0-cnt1 ))
     return data
+
+
+def dropna(df, axis=0, th=0.05, max_na=None):
+    """
+    Drop rows (axis=0) or cols (axis=1) based on the ratio of NA values
+    along the axis. Instead of ratio, you can also specify the max number
+    of NA.
+    Args:
+        th (float) : if ratio of NA values along the axis is larger that th,
+                     then drop all the values
+        max_na (int) : specify max allowable number of na (instead of
+                       specifying the ratio)
+        axis (int) : 0 to drop rows; 1 to drop cols
+    """
+    assert (axis in [0, 1]), 'Invalid value for axis'
+    axis = 0 if (axis == 1) else 1
+
+    if max_na is not None:
+        assert max_na >= 0, 'max_na must be >=0.'
+        idx = df.isna().sum(axis=axis) <= max_na
+    else:
+        idx = df.isna().sum(axis=axis)/df.shape[axis] <= th
+
+    if axis == 0:
+        df = df.iloc[:, idx.values]
+    else:
+        df = df.iloc[idx.values, :].reset_index(drop=True)
+    return df
 
 
 def dump_dict(dct, outpath='./dict.txt'):
