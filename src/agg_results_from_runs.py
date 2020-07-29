@@ -7,8 +7,6 @@ Example:
 python src/agg_results_from_runs.py --res_dir trn/ml.ADRP_pocket1_dock.lc/
 python src/agg_results_from_runs.py --res_dir trn/ml.ADRP-ADPR_pocket1_dock.lc/
 """
-from __future__ import print_function, division
-
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -25,22 +23,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+# Utils
+from learningcurve.lc_plots import plot_lc_many_metric
+        
 # File path
 filepath = Path(__file__).resolve().parent
 
-# Utils
-from learningcurve.lc_plots import plot_lc_many_metric # plot_lc_agg
-    
-        
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves.')
-
-    # Input data
-    parser.add_argument('--res_dir',
+    parser.add_argument('-r', '--res_dir',
                         required=True,
                         default=None,
                         type=str,
-                        help='Global dir where learning curve are located (default: None).')
+                        help='Global dir where LC data are located (default: None).')
     args, other_args = parser.parse_known_args(args)
     return args
 
@@ -63,11 +58,11 @@ def agg_scores(run_dirs):
 
 
 def run(args):
-    res_dir = Path(args['res_dir']).resolve()
+    res_dir = Path(args.res_dir).resolve()
     dir_name = res_dir.name # .split('.')[1]
     
-    run_dirs = glob( str(res_dir/'run*') )
-    scores = agg_scores( run_dirs )
+    run_dirs = glob(str(res_dir/'run*'))
+    scores = agg_scores(run_dirs)
     
     print('Training set sizes:', np.unique(scores.tr_size))
     
@@ -81,12 +76,12 @@ def run(args):
         te_scores_mae.to_csv(res_dir/'te_scores_mae.csv', index=False)
 
     kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
-    ax = plot_lc_many_metric(scores, metrics=['mean_absolute_error', 'r2'], outdir=res_dir, **kwargs)
+    ax = plot_lc_many_metric(scores, metrics=['mean_absolute_error', 'r2'],
+                             outdir=res_dir, **kwargs)
 
 
 def main(args):
     args = parse_args(args)
-    args = vars(args)
     score = run(args)
     return None
     

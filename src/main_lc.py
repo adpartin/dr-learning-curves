@@ -29,7 +29,7 @@ from ml.data import extract_subset_fea
 
 import learningcurve as lc
 from learningcurve.lrn_crv import LearningCurve
-import learningcurve.lc_plots as lc_plots 
+import learningcurve.lc_plots as lc_plots
 from utils.k_tuner import read_hp_prms
 
 
@@ -251,7 +251,6 @@ def run(args):
     # -----------------------------------------------
     #      ML model configs
     # -----------------------------------------------
-    # import pdb; pdb.set_trace()
     if args['ml'] == 'lgb':
         # LGBM regressor model definition
         import lightgbm as lgb
@@ -362,13 +361,13 @@ def run(args):
                          }
         keras_clr_kwargs = {}
 
-    # import pdb; pdb.set_trace()
-    # if len(ml_init_kwargs):
-    #     model = ml_model_def(**ml_init_kwargs)
-    #     model.summary( print_fn=lg.logger.info )
-    #     from tensorflow.keras.utils import plot_model
-    #     plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
-    #     del model
+    # Print NN
+    if len(ml_init_kwargs) and ('nn' in args['ml']):
+        model = ml_model_def(**ml_init_kwargs)
+        model.summary(print_fn=lg.logger.info)
+        # from tensorflow.keras.utils import plot_model
+        # plot_model(model, to_file=gout/'model.png', show_shapes=True, dpi=100)
+        del model
 
     # -----------------------------------------------
     #      Learning curve
@@ -398,7 +397,6 @@ def run(args):
                    }
 
     # LC object
-    # import pdb; pdb.set_trace()
     lc_obj = LearningCurve(X=xdata, Y=ydata, meta=meta, **lc_init_args)
     lc_scores = lc_obj.trn_learning_curve(**lc_trn_args)
 
@@ -503,5 +501,3 @@ def main(args):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
-
-

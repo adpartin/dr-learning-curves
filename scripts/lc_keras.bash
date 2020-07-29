@@ -55,7 +55,6 @@ for r in $(seq 1 $n_runs); do
         --min_size 10000 \
         --lc_sizes $LC_SIZES
 
-
         # --lc_sizes_arr 700000 500000 
 
         # --lc_sizes $LC_SIZES \

@@ -25,59 +25,29 @@ import seaborn as sns
 
 # Utils
 from utils.classlogger import Logger
-from utils.utils import load_data, dump_dict, get_print_func, dropna
+from utils.utils import dump_dict, get_print_func, dropna
 from utils.impute import impute_values
+from utils.resample import flatten_dist
 from ml.scale import scale_fea
 from ml.data import extract_subset_fea
 
 # File path
 filepath = Path(__file__).resolve().parent
 
-# Default settings
-# DATADIR = Path( filepath/'../data/raw' ).resolve()
-# OUTDIR = Path( DATADIR/'../ml.dfs' ).resolve()
-# os.makedirs(OUTDIR, exist_ok=True)
-
-# -----------
-# PreJuly2020
-# -----------
-# RSP_FILENAME = 'combined_single_response_agg'  # reposne data
-# # RSP_FILENAME_CHEM = 'chempartner_single_response_agg'  # reposne data
-# DSC_FILENAME = 'pan_drugs_dragon7_descriptors.tsv'  # drug descriptors data (new)
-# DSC_NCI60_FILENAME = 'NCI60_dragon7_descriptors.tsv'  # drug descriptors data (new)
-# DRUG_META_FILENAME = 'drug_info'
-# CELL_META_FILENAME = 'combined_cancer_types'
-# # CELL_META_FILENAME = 'combined_metadata_2018May.txt'
-
-# -----------
-# July2020
-# -----------
-# RSP_FILENAME = 'combined_single_response_agg'  # reposne data
-# # RSP_FILENAME_CHEM = 'chempartner_single_response_agg'  # reposne data
-# DSC_FILENAME = 'pan_drugs_dragon7_descriptors.tsv'  # drug descriptors data (new)
-# DSC_NCI60_FILENAME = 'NCI60_dragon7_descriptors.tsv'  # drug descriptors data (new)
-# DRUG_META_FILENAME = 'drug_info'
-# CELL_META_FILENAME = 'combined_cancer_types'
-# # CELL_META_FILENAME = 'combined_metadata_2018May.txt'
-
-
 # Settings
 na_values = ['na', '-', '']
 fea_prfx_dct = {'ge': 'ge_', 'cnv': 'cnv_', 'snp': 'snp_',
                 'dd': 'dd_', 'fng': 'fng_'}
 
-# prfx_dtypes = {'ge': np.float32, 'cnv': np.int8, 'snp': np.int8,
-#                'dd': np.float32, 'fng': np.int8}
-
 
 def create_basename(args):
     """ Name to characterize the data. Can be used for dir name and file name. """
-    ls = args['drug_fea'] + args['cell_fea']  # + [args['ge_norm']]
-    if args['src'] is None:
-        name = '.'.join( ls )
+    ls = args.drug_fea + args.cell_fea
+    if args.src is None:
+        name = '.'.join(ls)
     else:
-        src_names = '_'.join( args['src'] )
-        name = '.'.join( [src_names] + ls )
+        src_names = '_'.join(args.src)
+        name = '.'.join([src_names] + ls)
     name = 'data.' + name
     return name
 
@@ -90,8 +60,8 @@ def create_outdir(outdir, args):
     return outdir
 
 
-def groupby_src_and_print(df, print_fn=print):        
-    print_fn( df.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index() )
+def groupby_src_and_print(df, print_fn=print):
+    print_fn(df.groupby('SOURCE').agg({'CELL': 'nunique', 'DRUG': 'nunique'}).reset_index())
 
 
 def add_fea_prfx(df, prfx: str, id0: int):
@@ -101,8 +71,6 @@ def add_fea_prfx(df, prfx: str, id0: int):
 
 def load_rsp(fpath, src=None, r2fit_th=None, print_fn=print):
     """ Load drug response data. """
-    # print_fn(f'\nLoad response from ... {DATADIR/RSP_FILENAME}')
-    # rsp = pd.read_table(DATADIR/RSP_FILENAME, sep='\t', na_values=na_values, warn_bad_lines=True)
     rsp = pd.read_csv(fpath, sep='\t', na_values=na_values)
     rsp.drop(columns='STUDY', inplace=True)  # gives error when saves in 'parquet' format
     # print(rsp.dtypes)
@@ -111,7 +79,7 @@ def load_rsp(fpath, src=None, r2fit_th=None, print_fn=print):
     print_fn(f'rsp.shape {rsp.shape}')
     groupby_src_and_print(rsp, print_fn=print_fn)
     print_fn(rsp.SOURCE.value_counts())
-        
+
     # Drop bad samples
     if r2fit_th is not None:
         # Yitan
@@ -124,12 +92,12 @@ def load_rsp(fpath, src=None, r2fit_th=None, print_fn=print):
         print_fn('\nDrop samples with low R2fit.')
         print_fn('Samples with bad fit.')
         id_drop = rsp['R2fit'] <= r2fit_th
-        rsp_bad_fit = rsp.loc[id_drop,:].reset_index(drop=True)
+        rsp_bad_fit = rsp.loc[id_drop, :].reset_index(drop=True)
         groupby_src_and_print(rsp_bad_fit, print_fn=print_fn)
         print_fn(rsp_bad_fit.SOURCE.value_counts())
 
         print_fn('\nSamples with good fit.')
-        rsp = rsp.loc[~id_drop,:].reset_index(drop=True)
+        rsp = rsp.loc[~id_drop, :].reset_index(drop=True)
         groupby_src_and_print(rsp, print_fn=print_fn)
         print_fn(rsp.SOURCE.value_counts())
         print_fn(f'Dropped {sum(id_drop)} rsp data points.')
@@ -140,7 +108,8 @@ def load_rsp(fpath, src=None, r2fit_th=None, print_fn=print):
         print_fn('\nExtract specific sources.')
         rsp = rsp[rsp['SOURCE'].isin(src)].reset_index(drop=True)
 
-    rsp.replace([np.inf, -np.inf], value=np.nan, inplace=True) # Replace -inf and inf with nan
+    rsp['AUC_bin'] = rsp['AUC'].map(lambda x: 0 if x > 0.5 else 1)
+    rsp.replace([np.inf, -np.inf], value=np.nan, inplace=True)
 
     print_fn(f'rsp.shape {rsp.shape}')
     groupby_src_and_print(rsp, print_fn=print_fn)
@@ -187,7 +156,7 @@ def load_dd(fpath, print_fn=print, dropna_th=0.1, float_type=np.float32, src=Non
     else:
         if sum(dd.isna().sum() > 0):
             print_fn('Columns with all NaN values: {}'.format(
-                sum(dd.isna().sum(axis=0).sort_values(ascending=False)==dd.shape[0])))
+                sum(dd.isna().sum(axis=0).sort_values(ascending=False) == dd.shape[0])))
             print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
             imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
             # imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
@@ -226,32 +195,32 @@ def plot_rsp_dists(rsp, rsp_cols, savepath=None):
     """
     ncols = 4
     nrows = int(np.ceil(len(rsp_cols)/ncols))
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, sharex=False, sharey=False, figsize=(10,10))
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, sharex=False, sharey=False, figsize=(10, 10))
     for i, ax in enumerate(axes.ravel()):
         if i >= len(rsp_cols):
-            fig.delaxes(ax) # delete un-used ax
+            fig.delaxes(ax)  # delete un-used ax
         else:
             target_name = rsp_cols[i]
             x = rsp[target_name].copy()
             x = x[~x.isna()].values
-            sns.distplot(x, bins=100, kde=True, ax=ax, label=target_name, # fit=norm, 
-                        kde_kws={'color': 'k', 'lw': 0.4, 'alpha': 0.8},
-                        hist_kws={'color': 'b', 'lw': 0.4, 'alpha': 0.5})
+            sns.distplot(x, bins=100, kde=True, ax=ax, label=target_name,  # fit=norm,
+                         kde_kws={'color': 'k', 'lw': 0.4, 'alpha': 0.8},
+                         hist_kws={'color': 'b', 'lw': 0.4, 'alpha': 0.5})
             ax.tick_params(axis='both', which='major', labelsize=7)
-            txt = ax.yaxis.get_offset_text(); txt.set_size(7) # adjust exponent fontsize in xticks
+            txt = ax.yaxis.get_offset_text(); txt.set_size(7)  # adjust exponent fontsize in xticks
             txt = ax.xaxis.get_offset_text(); txt.set_size(7)
             ax.legend(fontsize=5, loc='best')
             ax.grid(True)
 
     # plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1.0)
     if savepath is not None:
-        plt.savefig(savepath, bbox_inches='tight') # dpi=200
+        plt.savefig(savepath, bbox_inches='tight')  # dpi=200
     else:
         plt.savefig('rsp_dists.png', bbox_inches='tight')
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description='Create tidy data.')
+    parser = argparse.ArgumentParser(description='Create ML dataframe.')
 
     parser.add_argument('--rsp_path',
                         type=str,
@@ -264,9 +233,9 @@ def parse_args(args):
                         help='Path to cell features file.')
     parser.add_argument('--r2fit_th',
                         type=float,
-                        default=0.7,
+                        default=0.5,
                         help='Drop drug response values with R-square fit \
-                        less than this value (Default: 0.7).')
+                        less than this value (Default: 0.5).')
 
     parser.add_argument('--drug_fea',
                         type=str,
@@ -293,21 +262,29 @@ def parse_args(args):
                         choices=['ccle', 'gcsi', 'gdsc', 'gdsc1', 'gdsc2', 'ctrp', 'nci60'],
                         help='Data sources to extract (default: None).')
 
+    parser.add_argument('--n_samples',
+                        type=int,
+                        default=None,
+                        help='Number of docking scores to get into the ML df (default: None).')
+    parser.add_argument('--flatten',
+                        action='store_true',
+                        help='Flatten the distribution of response values (default: False).')
+    parser.add_argument('-t', '--trg_name',
+                        default='AUC',
+                        type=str,
+                        choices=['AUC'],
+                        help='Name of target variable (default: AUC).')
+
     args = parser.parse_args(args)
     return args
 
 
 def run(args):
-    import ipdb; ipdb.set_trace(context=5)
+    # import ipdb; ipdb.set_trace(context=5)
     t0 = time()
     rsp_cols = ['AUC', 'AUC1', 'EC50', 'EC50se', 'R2fit',
                 'Einf', 'IC50', 'HS', 'AAC1', 'DSS1']
-
-    # -----------------------------------------------
-    #     Create outdir
-    # -----------------------------------------------
-    outdir = create_outdir(args['gout'], args)
-    args['outdir'] = str(outdir)
+    outdir = create_outdir(args.gout, args)
 
     # -----------------------------------------------
     #     Logger
@@ -315,105 +292,89 @@ def run(args):
     lg = Logger(outdir/'gen.df.log')
     print_fn = get_print_func(lg.logger)
     print_fn(f'File path: {filepath}')
-    print_fn(f'\n{pformat(args)}')
-    dump_dict(args, outpath=outdir/'gen.df.args')
+    print_fn(f'\n{pformat(vars(args))}')
+    dump_dict(vars(args), outpath=outdir/'gen.df.args')
 
     # -----------------------------------------------
-    #     Load response data, and features
+    #     Load response data and features
     # -----------------------------------------------
-    rsp = load_rsp(args['rsp_path'], src=args['src'], r2fit_th=args['r2fit_th'],
+    rsp = load_rsp(args.rsp_path, src=args.src, r2fit_th=args.r2fit_th,
                    print_fn=print_fn)
-    ge = load_ge(args['cell_path'], print_fn=print_fn, float_type=np.float32)
-    dd = load_dd(args['drug_path'], dropna_th=args['dropna_th'], print_fn=print_fn,
-                 float_type=np.float32, src=args['src'], outdir=outdir)
+    ge = load_ge(args.cell_path, print_fn=print_fn, float_type=np.float32)
+    dd = load_dd(args.drug_path, dropna_th=args.dropna_th, print_fn=print_fn,
+                 float_type=np.float32, src=args.src)
 
     # -----------------------------------------------
     #     Merge data
     # -----------------------------------------------
-    print_fn('\n{}'.format('-'*40))
-    print_fn('Start merging response with other dataframes ...')
-    print_fn('-'*40)
+    print_fn('\n{}'.format('-' * 40))
+    print_fn('Start merging response with other dfs.')
+    print_fn('-' * 40)
     data = rsp
 
     # Merge with ge
-    print_fn('\nMerge with expression (ge) ...')
+    print_fn('\nMerge with expression (ge).')
     data = pd.merge(data, ge, on='CELL', how='inner')
     groupby_src_and_print(data, print_fn=print_fn)
     del ge
 
     # Merge with dd
-    print_fn('\nMerge with descriptors (dd) ...')
+    print_fn('\nMerge with descriptors (dd).')
     data = pd.merge(data, dd, on='DRUG', how='inner')
     groupby_src_and_print(data, print_fn=print_fn)
     del dd
 
-    # Sample from NCI60 (specify the max size)
-    # max_sz = 500000
-    # max_sz = 650000
-    # max_sz = 700000
-    max_sz = 750000
-    # max_sz = 900000
-    if ('nci60' in args['src']) and (data.shape[0] > max_sz):
-        print_fn('\nSample the final dataset ...')
-        data = data.sample(n=max_sz, random_state=0)
+    # Sample
+    if (args.n_samples is not None):
+        print_fn('\nSample the final dataset.')
+        if args.flatten:
+            data = flatten_dist(df=data, n=args.n_samples, score_name=args.trg_name)
+        else:
+            data = data.sample(n=args.n_samples, replace=False, random_state=0)
         print_fn(f'data.shape {data.shape}\n')
 
     # Memory usage
-    print_fn('\nTidy dataframe: {:.2f} GB'.format(sys.getsizeof(data)/1e9))
+    print_fn('\nTidy dataframe: {:.1f} GB'.format(sys.getsizeof(data)/1e9))
     for fea_name, fea_prfx in fea_prfx_dct.items():
         cols = [c for c in data.columns if fea_prfx in c]
         aa = data[cols]
         mem = 0 if aa.shape[1] == 0 else sys.getsizeof(aa)/1e9
-        print_fn('Memory occupied by {} features: {} ({:.2f} GB)'.format(
+        print_fn('Memory occupied by {} features: {} ({:.1f} GB)'.format(
             fea_name, len(cols), mem))
 
-    print_fn('\nRuntime: {:.1f} mins'.format( (time()-t0)/60) )
-
-    # -----------------------------------------------
-    #   Plot rsp distributions
-    # -----------------------------------------------
-    # Plot distributions of target variables
+    # Plot histograms of target variables
     plot_rsp_dists(data, rsp_cols=rsp_cols, savepath=outdir/'rsp_dists.png')
 
-    # Plot distribution of a single target
-    # target_name = 'EC50se'
-    # fig, ax = plt.subplots()
-    # x = rsp[target_name].copy()
-    # x = x[~x.isna()].values
-    # sns.distplot(x, bins=100, ax=ax)
-    # plt.savefig(os.path.join(OUTDIR, target_name+'.png'), bbox_inches='tight')
-
     # -----------------------------------------------
-    #   Finally save data
+    #   Save data
     # -----------------------------------------------
     # Save data
-    print_fn('\nSave tidy dataframe ...')
+    print_fn('\nSave dataframe.')
     fname = create_basename(args)
     fpath = outdir/(fname + '.parquet')
     data.to_parquet(fpath)
 
     # Load data
-    print_fn('Load tidy dataframe ...')
+    print_fn('Load dataframe.')
     data_fromfile = pd.read_parquet(fpath)
 
     # Check that the saved data is the same as original one
-    print_fn(f'Loaded dataframe is same as original: {data.equals(data_fromfile)}')
+    print_fn(f'Loaded df is same as original: {data.equals(data_fromfile)}')
 
-    # --------------------------------------------------------
-    print_fn('\n{}'.format('-' * 80))
-    print_fn(f'Tidy data filepath:\n{os.path.abspath(fpath)}')
-    print_fn('-' * 80)
+    print_fn('\n{}'.format('-' * 70))
+    print_fn(f'Dataframe filepath:\n{fpath.resolve()}')
+    print_fn('-' * 70)
+
+    # -------------------------------------------------------
+    print_fn('\nRuntime: {:.1f} mins'.format((time()-t0)/60))
+    print_fn('Done.')
     lg.kill_logger()
 
 
 def main(args):
     args = parse_args(args)
-    args = vars(args)
     run(args)
-    print('Done.')
 
 
 if __name__ == '__main__':
     main(sys.argv[1:])
-
-
