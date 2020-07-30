@@ -148,23 +148,25 @@ def load_dd(fpath, print_fn=print, dropna_th=0.1, float_type=np.float32, src=Non
     dd = pd.read_csv(fpath, sep='\t', na_values=na_values)
     dd.rename(columns={'ID': 'DRUG'}, inplace=True)
 
-    fea_id0 = 4
     # dd = add_fea_prfx(dd, prfx=fea_prfx_dct['dd'], id0=fea_id0)
 
     if 'nci60' in src:
         dd = dropna(dd, axis=0, th=dropna_th)
+        fea_id0 = 2
     else:
-        if sum(dd.isna().sum() > 0):
-            print_fn('Columns with all NaN values: {}'.format(
-                sum(dd.isna().sum(axis=0).sort_values(ascending=False) == dd.shape[0])))
-            print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
-            imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
-            # imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
-            # imputer = KNNImputer(missing_values=np.nan, n_neighbors=5,
-            #                      weights='uniform', metric='nan_euclidean',
-            #                      add_indicator=False)
-            dd.iloc[:, fea_id0:] = imputer.fit_transform(dd.iloc[:, fea_id0:].values)
-            print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
+        fea_id0 = 4
+
+    if sum(dd.isna().sum() > 0):
+        print_fn('Columns with all NaN values: {}'.format(
+            sum(dd.isna().sum(axis=0).sort_values(ascending=False) == dd.shape[0])))
+        print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
+        imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value=0)
+        # imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+        # imputer = KNNImputer(missing_values=np.nan, n_neighbors=5,
+        #                      weights='uniform', metric='nan_euclidean',
+        #                      add_indicator=False)
+        dd.iloc[:, fea_id0:] = imputer.fit_transform(dd.iloc[:, fea_id0:].values)
+        print_fn('Columns with NaNs: {}'.format( sum(dd.iloc[:, fea_id0:].isna().sum() > 0) ))
 
     # Cast features
     dd = dd.astype(dtype={c: float_type for c in dd.columns[fea_id0:]})
@@ -280,7 +282,7 @@ def parse_args(args):
 
 
 def run(args):
-    # import ipdb; ipdb.set_trace(context=5)
+    import ipdb; ipdb.set_trace(context=5)
     t0 = time()
     rsp_cols = ['AUC', 'AUC1', 'EC50', 'EC50se', 'R2fit',
                 'Einf', 'IC50', 'HS', 'AAC1', 'DSS1']
