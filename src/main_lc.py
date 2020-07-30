@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -8,18 +6,14 @@ import sys
 from pathlib import Path
 import argparse
 from time import time
-from pprint import pprint, pformat
+from pprint import pformat
 from glob import glob
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-import numpy as np
 import pandas as pd
-
-# File path
-filepath = Path(__file__).resolve().parent
 
 # Utils
 from utils.classlogger import Logger
@@ -32,6 +26,8 @@ from learningcurve.lrn_crv import LearningCurve
 import learningcurve.lc_plots as lc_plots
 from utils.k_tuner import read_hp_prms
 
+# File path
+filepath = Path(__file__).resolve().parent
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves (LCs).')
@@ -92,7 +88,7 @@ def parse_args(args):
                         default='log',
                         type=str,
                         choices=['log', 'linear'],
-                        help='Scale of progressive sampling of subset sizes in a learning curve (log2, log, log10, linear) (default: log).')
+                        help='Scale of progressive sampling of subset sizes in a LC (log2, log, log10, linear) (default: log).')
     parser.add_argument('--min_size',
                         default=128,
                         type=int,
@@ -109,7 +105,7 @@ def parse_args(args):
                         nargs='+',
                         type=int,
                         default=None,
-                        help='List of the actual sizes in the learning curve plot (default: None).')
+                        help='List of the actual sizes in the LC plot (default: None).')
     parser.add_argument('--save_model',
                         action='store_true',
                         help='Whether to trained models (default: False).')
@@ -155,13 +151,12 @@ def parse_args(args):
     # Other
     parser.add_argument('--n_jobs', default=4, type=int, help='Default: 4.')
 
-    # args, other_args = parser.parse_known_args(args)
     args = parser.parse_args(args)
     return args
 
 
 def run(args):
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     t0 = time()
     datapath = Path(args['datapath']).resolve()
     ls_hpo_dir = None if args['ls_hpo_dir'] is None else Path(args['ls_hpo_dir']).resolve()
@@ -177,7 +172,7 @@ def run(args):
     #       Global outdir
     # -----------------------------------------------
     if args['gout'] is not None:
-        gout = Path( args['gout'] ).resolve()
+        gout = Path(args['gout']).resolve()
     else:
         gout = filepath.parent/'lc.trn'
         gout = gout/datapath.with_suffix('.lc').name
@@ -205,7 +200,7 @@ def run(args):
     print_fn = get_print_func(lg.logger)
     print_fn(f'File path: {filepath}')
     print_fn(f'\n{pformat(args)}')
-    dump_dict(args, outpath=rout/'trn.args.txt') # dump args.
+    dump_dict(args, outpath=rout/'trn.args.txt')
 
     # -----------------------------------------------
     #       Load data
@@ -234,7 +229,7 @@ def run(args):
         cv_lists = None
     else:
         split_pattern = f'1fold_s{split_id}_*_id.csv'
-        single_split_files = glob( str(splitdir/split_pattern) )
+        single_split_files = glob(str(splitdir/split_pattern))
 
         # Get indices for the split
         # assert len(single_split_files) >= 2, f'The split {s} contains only one file.'
@@ -284,7 +279,8 @@ def run(args):
 
     elif (args['ml'] == 'nn_reg0') or (args['ml'] == 'nn_attn0'):
         # Keras model def
-        from models.keras_model import nn_reg0_model_def, nn_attn0_model_def, data_prep_nn0_def, model_callback_def
+        from models.keras_model import (nn_reg0_model_def, nn_attn0_model_def,
+                                        data_prep_nn0_def, model_callback_def)
         framework = 'keras'
         mltype = 'reg'
         keras_callbacks_def = model_callback_def
@@ -322,7 +318,8 @@ def run(args):
         # model = ml_model_def(**ml_init_kwargs)
 
     elif (args['ml'] == 'nn_reg1') or (args['ml'] == 'nn_attn1'):
-        from models.keras_model import nn_reg1_model_def, nn_attn1_model_def, data_prep_nn1_def, model_callback_def
+        from models.keras_model import (nn_reg1_model_def, nn_attn1_model_def,
+                                        data_prep_nn1_def, model_callback_def)
         framework = 'keras'
         mltype = 'reg'
         keras_callbacks_def = model_callback_def
@@ -350,9 +347,11 @@ def run(args):
             ml_init_kwargs['batchnorm'] = args['batchnorm']
 
         elif (ls_hpo_dir is None) and (ps_hpo_dir is None):
-            ml_init_kwargs = {'in_dim_ge': x_ge.shape[1], 'in_dim_dd': x_dd.shape[1],
+            ml_init_kwargs = {'in_dim_ge': x_ge.shape[1],
+                              'in_dim_dd': x_dd.shape[1],
                               'dr_rate': args['dr_rate'],
-                              'opt_name': args['opt'], 'lr': args['lr'],
+                              'opt_name': args['opt'],
+                              'lr': args['lr'],
                               'batchnorm': args['batchnorm']
                               }
         ml_fit_kwargs = {'epochs': args['epoch'],
@@ -479,9 +478,9 @@ def run(args):
 
     # ------------------------------------------------------
     if (time()-t0)//3600 > 0:
-        print_fn('Runtime: {:.1f} hrs'.format( (time()-t0)/3600) )
+        print_fn('Runtime: {:.1f} hrs'.format((time()-t0)/3600))
     else:
-        print_fn('Runtime: {:.1f} min'.format( (time()-t0)/60) )
+        print_fn('Runtime: {:.1f} min'.format((time()-t0)/60))
 
     print_fn('Done.')
     lg.kill_logger()

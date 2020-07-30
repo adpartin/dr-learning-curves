@@ -13,9 +13,9 @@ echo "Outdir $OUTDIR"
 LC_SIZES=7
 # LC_SIZES=12
 
-EPOCH=2
+# EPOCH=2
 # EPOCH=10
-# EPOCH=500
+EPOCH=500
 
 SPLIT=0
 
@@ -52,7 +52,7 @@ for r in $(seq 1 $n_runs); do
         --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
         --ls_hpo_dir $ls_hpo_dir \
         --rout run$r \
-        --min_size 10000 \
+        --min_size 20000 \
         --lc_sizes $LC_SIZES
 
         # --lc_sizes_arr 700000 500000 

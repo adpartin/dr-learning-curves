@@ -28,10 +28,6 @@ for SOURCE in ${sources[@]}; do
 done
 
 # ------------------------------------------------------------
-data_version=July2020
-rawdir=data/raw/$data_version
-outdir=$rawdir/../../ml.dfs/$data_version
-
 drug_path=$rawdir/NCI60_drugs_52k_smiles/dd.mordred.with.nans
 
 python src/build_dfs_july2020.py \
