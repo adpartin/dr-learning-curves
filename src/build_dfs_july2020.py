@@ -282,7 +282,7 @@ def parse_args(args):
 
 
 def run(args):
-    import ipdb; ipdb.set_trace(context=5)
+    # import ipdb; ipdb.set_trace(context=5)
     t0 = time()
     rsp_cols = ['AUC', 'AUC1', 'EC50', 'EC50se', 'R2fit',
                 'Einf', 'IC50', 'HS', 'AAC1', 'DSS1']

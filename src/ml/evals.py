@@ -67,7 +67,7 @@ def calc_scores(y_true, y_pred, mltype, metrics=None):
         scores['mean_absolute_error']   = sklearn.metrics.mean_absolute_error(y_true=y_true, y_pred=y_pred)
         scores['median_absolute_error'] = sklearn.metrics.median_absolute_error(y_true=y_true, y_pred=y_pred)
         # scores['mean_squared_error'] = sklearn.metrics.mean_squared_error(y_true=y_true, y_pred=y_pred)
-        scores['mse']  = sklearn.metrics.mean_squared_error(y_true=y_true, y_pred=y_pred)
+        # scores['mse']  = sklearn.metrics.mean_squared_error(y_true=y_true, y_pred=y_pred)
         scores['rmse'] = scores['mse'] ** 0.5
         # scores['auroc_reg'] = reg_auroc(y_true=y_true, y_pred=y_pred)
         scores['spearmanr'] = spearmanr(y_true, y_pred)[0]

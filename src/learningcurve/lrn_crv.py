@@ -24,9 +24,6 @@ from pandas.api.types import is_string_dtype
 from sklearn.preprocessing import LabelEncoder
 import joblib
 
-# Utils
-filepath = Path(__file__).resolve().parent
-
 from datasplit.splitter import data_splitter
 from ml.keras_utils import save_krs_history, plot_prfrm_metrics, r2_krs
 from ml.evals import calc_preds, calc_scores, dump_preds
@@ -307,9 +304,9 @@ class LearningCurve():
         self.n_jobs = n_jobs
 
         # Start nested loop of train size and cv folds
-        tr_scores_all = [] # list of dicts
-        vl_scores_all = [] # list of dicts
-        te_scores_all = [] # list of dicts
+        tr_scores_all = []  # list of dicts
+        vl_scores_all = []  # list of dicts
+        te_scores_all = []  # list of dicts
 
         # Record runtime per size
         runtime_records = []
@@ -319,9 +316,9 @@ class LearningCurve():
             self.print_fn(f'Split {split_num} out of {list(self.tr_dct.keys())}')
 
             # Get the indices for this split
-            tr_id = self.tr_dct[ split_num ]
-            vl_id = self.vl_dct[ split_num ]
-            te_id = self.te_dct[ split_num ]
+            tr_id = self.tr_dct[split_num]
+            vl_id = self.vl_dct[split_num]
+            te_id = self.te_dct[split_num]
 
             # Extract Train set T, Validation set V, and Test set E
             xtr_df, ytr_df, mtr_df = self.get_data_by_id(tr_id) # samples from xtr are sequentially sampled for TRAIN
@@ -329,9 +326,9 @@ class LearningCurve():
             xte_df, yte_df, mte_df = self.get_data_by_id(te_id) # fixed set of TEST samples for the current CV split
 
             # New
-            # xvl = np.asarray( xvl_df )
+            # xvl = np.asarray(xvl_df)
             yvl = np.asarray(yvl_df)
-            # xte = np.asarray( xte_df )
+            # xte = np.asarray(xte_df)
             yte = np.asarray(yte_df)
 
             # Loop over subset sizes (iterate across the dataset sizes and train)
@@ -360,7 +357,7 @@ class LearningCurve():
                     hp_path = hp_path/'best_hps.txt'
                     # self.ml_init_args = read_hp_prms( hp_path )
                     # self.ml_init_args['input_dim'] = xtr_sub_df.shape[1] 
-                    ml_init_args = read_hp_prms( hp_path )
+                    ml_init_args = read_hp_prms(hp_path)
                     ml_init_args.update(self.ml_init_args)
 
                 if self.data_prep_def is not None:
@@ -374,25 +371,29 @@ class LearningCurve():
 
 
                 # Get the estimator
-                # model = self.ml_model_def( **self.ml_init_args )
-                model = self.ml_model_def( **ml_init_args )
+                # model = self.ml_model_def(**self.ml_init_args)
+                model = self.ml_model_def(**ml_init_args)
 
                 # Train
                 eval_set = (xvl, yvl)
-                if self.framework=='lightgbm':
+                if self.framework == 'lightgbm':
                     model, trn_outdir, runtime = self.trn_lgbm_model(
                         model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                         split=split_num, tr_sz=tr_sz, eval_set=eval_set)
-                elif self.framework=='sklearn':
+
+                elif self.framework == 'sklearn':
                     model, trn_outdir, runtime = self.trn_sklearn_model(
                         model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                         split=split_num, tr_sz=tr_sz, eval_set=None)
-                elif self.framework=='keras':
+
+                elif self.framework == 'keras':
                     model, trn_outdir, runtime = self.trn_keras_model(
                         model=model, xtr_sub=xtr_sub, ytr_sub=ytr_sub,
                         split=split_num, tr_sz=tr_sz, eval_set=eval_set)
-                elif self.framework=='pytorch':
+
+                elif self.framework == 'pytorch':
                     raise ValueError(f'Framework {self.framework} is not yet supported.')
+
                 else:
                     raise ValueError(f'Framework {self.framework} is not yet supported.')
 
@@ -402,7 +403,7 @@ class LearningCurve():
                 # Dump args
                 # model_args = self.ml_init_args.copy()
                 model_args = ml_init_args.copy()
-                model_args.update( self.ml_fit_args )
+                model_args.update(self.ml_fit_args)
                 dump_dict(model_args, trn_outdir/'model_args.txt')
 
                 # Save plot of target distribution
@@ -432,21 +433,21 @@ class LearningCurve():
 
                 # Add metadata
                 tr_scores['set'] = 'tr'
-                tr_scores['split'] = 'split'+str(split_num)
+                tr_scores['split'] = 'split' + str(split_num)
                 tr_scores['tr_size'] = tr_sz
 
                 vl_scores['set'] = 'vl'
-                vl_scores['split'] = 'split'+str(split_num)
+                vl_scores['split'] = 'split' + str(split_num)
                 vl_scores['tr_size'] = tr_sz
 
                 te_scores['set'] = 'te'
-                te_scores['split'] = 'split'+str(split_num)
+                te_scores['split'] = 'split' + str(split_num)
                 te_scores['tr_size'] = tr_sz
 
                 # Append scores (dicts)
-                tr_scores_all.append( tr_scores )
-                vl_scores_all.append( vl_scores )
-                te_scores_all.append( te_scores )
+                tr_scores_all.append(tr_scores)
+                vl_scores_all.append(vl_scores)
+                te_scores_all.append(te_scores)
 
                 # Dump intermediate scores
                 scores = pd.concat([scores_to_df([tr_scores]),
@@ -472,7 +473,8 @@ class LearningCurve():
         # scores_df.to_csv( self.outdir/'lc_scores.csv', index=False) 
 
         # Runtime df
-        runtime_df = pd.DataFrame.from_records(runtime_records, columns=['split', 'tr_sz', 'time(s)'])
+        runtime_df = pd.DataFrame.from_records(
+            runtime_records, columns=['split', 'tr_sz', 'time(s)'])
         runtime_df.to_csv(self.outdir/'runtime.csv', index=False)
 
         return scores_df
@@ -580,7 +582,7 @@ class LearningCurve():
 
 def scores_to_df( scores_all ):
     """ (tricky commands) """
-    df = pd.DataFrame( scores_all )
+    df = pd.DataFrame(scores_all)
     df_mlt = df.melt(id_vars=['split', 'tr_size', 'set'])
     df_mlt = df_mlt.rename(columns={'variable': 'metric'})
     df_mlt = df_mlt.rename(columns={'value': 'score'})

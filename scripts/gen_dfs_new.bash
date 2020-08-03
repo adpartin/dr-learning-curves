@@ -37,6 +37,6 @@ python src/build_dfs_july2020.py \
     --drug_path $drug_path \
     --dropna_th $dropna_th \
     --r2fit_th $r2fit_th \
-    --n_samples 500000 \
+    --n_samples 750000 \
     --flatten \
     --gout $outdir

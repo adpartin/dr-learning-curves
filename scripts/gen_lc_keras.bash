@@ -1,70 +1,49 @@
 #!/bin/bash
 
-OUTDIR=lc.out
+# Example:
+# lc_keras.bash nci60 nn_reg0 0 flatten
+# lc_keras.bash nci60 nn_reg0 0 random
+
+OUTDIR=lc.out_02
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
-# lc_sizes=12
-lc_sizes=7
-# lc_sizes=4
-# EPOCH=400
+LC_SIZES=7
+# LC_SIZES=12
+
+# EPOCH=2
 EPOCH=500
 
-# # PS-HPO
-# SOURCE=$1
-# DEVICE=$2
-# # SOURCE=ccle
-# # SOURCE=gdsc
-# # SOURCE=ctrp
-# # export CUDA_VISIBLE_DEVICES=1
-# export CUDA_VISIBLE_DEVICES=$2
-# echo "Processing source: $SOURCE"
-# echo "CUDA device: $CUDA_VISIBLE_DEVICES"
-# python src/main_lc.py \
-#     -dp data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet \
-#     -sd data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits \
-#     --split_id 0 \
-#     --fea_prfx ge dd --fea_sep _ \
-#     -t AUC -sc stnd --ml $MODEL \
-#     --batch_size 64 --epoch $EPOCH \
-#     --lc_sizes $lc_sizes \
-#     --gout $OUTDIR/lc_${SOURCE}_ps_hpo \
-#     --ps_hpo_dir k-tuner/${SOURCE}_tuner_out/ps_hpo
+SPLIT=0
 
-# # LS-HPO
-# SOURCE=$1
-# DEVICE=$2
-# export CUDA_VISIBLE_DEVICES=$2
-# echo "Processing source: $SOURCE"
-# echo "CUDA device: $CUDA_VISIBLE_DEVICES"
-# python src/main_lc.py \
-#     -dp data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet \
-#     -sd data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits \
-#     --split_id 0 \
-#     --fea_prfx ge dd --fea_sep _ \
-#     -t AUC -sc stnd --ml $MODEL \
-#     --batch_size 64 --epoch $EPOCH \
-#     --lc_sizes $lc_sizes \
-#     --gout $OUTDIR/lc_${SOURCE}_ls_hpo \
-#     --ls_hpo_dir k-tuner/${SOURCE}_tuner_out/ls_hpo
-
-# Default HPs
 SOURCE=$1
-DEVICE=$2
-MODEL=$3
-export CUDA_VISIBLE_DEVICES=$2
-echo "Processing source: $SOURCE"
-echo "CUDA device: $CUDA_VISIBLE_DEVICES"
-python src/main_lc.py \
-    -dp data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.parquet \
-    -sd data/ml.dfs/data.$SOURCE.dd.ge.raw/data.$SOURCE.dd.ge.raw.splits \
-    --split_id 0 \
-    --fea_prfx ge dd --fea_sep _ \
-    -t AUC -sc stnd --ml $MODEL \
-    --batch_size 64 --epoch $EPOCH \
-    --batchnorm \
-    --gout $OUTDIR/lc_${SOURCE}_${MODEL}_default \
-    --min_size 2024
-    --lc_sizes $lc_sizes \
+MODEL=$2
+DEVICE=$3
+SAMPLING=$4
 
-    # --lc_sizes_arr 88416 \
+export CUDA_VISIBLE_DEVICES=$3
+echo "Source: $SOURCE"
+echo "Model:  $MODEL"
+echo "CUDA:   $CUDA_VISIBLE_DEVICES"
+echo "SAMPLING: $SAMPLING"
+
+data_version=July2020
+dpath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge.$SAMPLING/data.$SOURCE.dd.ge.parquet 
+spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge.$SAMPLING/data.$SOURCE.dd.ge.splits 
+ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
+
+r=7
+python src/main_lc.py \
+    -dp $dpath \
+    -sd $spath \
+    --split_id $SPLIT \
+    --ml $MODEL \
+    --epoch $EPOCH \
+    --batchnorm \
+    --gout $OUTDIR/lc.${SOURCE}.${MODEL}.${SAMPLING}.ls_hpo \
+    --ls_hpo_dir $ls_hpo_dir \
+    --rout run$r \
+    --lc_sizes_arr 500000 570000 640000
+
+#     --min_size 20000 \
+#     --lc_sizes $LC_SIZES
