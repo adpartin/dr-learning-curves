@@ -53,15 +53,18 @@ def clr_keras_callback(mode=None, base_lr=1e-4, max_lr=1e-3, gamma=0.999994):
 
 def model_callback_def(outdir, ref_metric='val_loss', **clr_kwargs):
     """ Required for lrn_crv.py """
-    checkpointer = ModelCheckpoint( str(outdir/'model_best.h5'), monitor='val_loss', verbose=0,
-                                    save_weights_only=False, save_best_only=True )
-    csv_logger = CSVLogger( outdir/'training.log' )
-    reduce_lr = ReduceLROnPlateau( monitor=ref_metric, factor=0.75, patience=25, verbose=1,
-                                   mode='auto', min_delta=0.0001, cooldown=3, min_lr=0.000000001 )
-    early_stop = EarlyStopping( monitor=ref_metric, patience=30, verbose=1, mode='auto' )
+    checkpointer = ModelCheckpoint(str(outdir/'model_best.h5'), monitor='val_loss',
+                                   verbose=0, save_weights_only=False,
+                                   save_best_only=True)
+    csv_logger = CSVLogger(outdir/'training.log')
+    reduce_lr = ReduceLROnPlateau(monitor=ref_metric, factor=0.75, patience=20,
+                                  verbose=1, mode='auto', min_delta=0.0001,
+                                  cooldown=3, min_lr=0.000000001)
+    early_stop = EarlyStopping(monitor=ref_metric, patience=25, verbose=1,
+                               mode='auto')
 
     if bool(clr_kwargs):
-        clr = clr_keras_callback( **clr_kwargs )
+        clr = clr_keras_callback(**clr_kwargs)
         return [checkpointer, csv_logger, early_stop, reduce_lr, clr]
 
     return [checkpointer, csv_logger, early_stop, reduce_lr]

@@ -35,8 +35,8 @@ echo "cnt:    $cnt"
 # echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 # Data and splits path
-dpath=data/ml.dfs/data.${src}.dd.ge.raw/data.${src}.dd.ge.raw.parquet
-spath=data/ml.dfs/data.${src}.dd.ge.raw/data.${src}.dd.ge.raw.splits
+dpath=data/ml.dfs/data.${src}.dd.ge/data.${src}.dd.ge.parquet
+spath=data/ml.dfs/data.${src}.dd.ge/data.${src}.dd.ge.splits
 # ps_hpo_dir=k-tuner/${src}_${model}_tuner_out/ps_hpo
 ls_hpo_dir=k-tuner/${src}_${model}_tuner_out/ls_hpo
 

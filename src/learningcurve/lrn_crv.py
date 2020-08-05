@@ -291,8 +291,8 @@ class LearningCurve():
             from utils.k_tuner import read_hp_prms
             self.ps_hpo_dir = Path(ps_hpo_dir)
             files = glob( str(self.ps_hpo_dir/'tr_sz*') )
-            hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
-            self.hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
+            hp_sizes = {int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files}
+            self.hp_sizes = {k: hp_sizes[k] for k in sorted(list(hp_sizes.keys()))} # sort dict by key
         else:
             self.hp_sizes = None
 
@@ -321,14 +321,15 @@ class LearningCurve():
             te_id = self.te_dct[split_num]
 
             # Extract Train set T, Validation set V, and Test set E
-            xtr_df, ytr_df, mtr_df = self.get_data_by_id(tr_id) # samples from xtr are sequentially sampled for TRAIN
-            xvl_df, yvl_df, mvl_df = self.get_data_by_id(vl_id) # fixed set of VAL samples for the current CV split
-            xte_df, yte_df, mte_df = self.get_data_by_id(te_id) # fixed set of TEST samples for the current CV split
+            # Samples from xtr are sequentially sampled for TRAIN
+            # Fixed set of VAL samples for the current CV split
+            # Fixed set of TEST samples for the current CV split
+            xtr_df, ytr_df, mtr_df = self.get_data_by_id(tr_id)
+            xvl_df, yvl_df, mvl_df = self.get_data_by_id(vl_id)
+            xte_df, yte_df, mte_df = self.get_data_by_id(te_id)
 
             # New
-            # xvl = np.asarray(xvl_df)
             yvl = np.asarray(yvl_df)
-            # xte = np.asarray(xte_df)
             yte = np.asarray(yte_df)
 
             # Loop over subset sizes (iterate across the dataset sizes and train)
@@ -342,21 +343,14 @@ class LearningCurve():
                 mtr_sub_df = mtr_df.iloc[:tr_sz, :]
 
                 # New
-                # xtr_sub = np.asarray( xtr_sub_df )
                 ytr_sub = np.asarray(ytr_sub_df)
 
                 # HP set per tr size
-                # import pdb; pdb.set_trace()
                 if self.hp_sizes is not None:
-                    # files = glob( str(self.ps_hpo_dir/'tr_sz*') )
-                    # hp_sizes = { int(f.split(os.sep)[-1].split('tr_sz_')[-1]): Path(f) for f in files }
-                    # hp_sizes = { k: hp_sizes[k] for k in sorted(list(hp_sizes.keys())) } # sort dict by key
                     keys_vec = list(self.hp_sizes.keys())
                     idx_min = np.argmin( np.abs( keys_vec - tr_sz ) )
                     hp_path = self.hp_sizes[ keys_vec[idx_min] ]
                     hp_path = hp_path/'best_hps.txt'
-                    # self.ml_init_args = read_hp_prms( hp_path )
-                    # self.ml_init_args['input_dim'] = xtr_sub_df.shape[1] 
                     ml_init_args = read_hp_prms(hp_path)
                     ml_init_args.update(self.ml_init_args)
 
@@ -369,9 +363,7 @@ class LearningCurve():
                     xvl = np.asarray(xvl_df)
                     xte = np.asarray(xte_df)
 
-
                 # Get the estimator
-                # model = self.ml_model_def(**self.ml_init_args)
                 model = self.ml_model_def(**ml_init_args)
 
                 # Train
@@ -392,13 +384,13 @@ class LearningCurve():
                         split=split_num, tr_sz=tr_sz, eval_set=eval_set)
 
                 elif self.framework == 'pytorch':
-                    raise ValueError(f'Framework {self.framework} is not yet supported.')
+                    raise ValueError(f'Framework {self.framework} is not supported.')
 
                 else:
-                    raise ValueError(f'Framework {self.framework} is not yet supported.')
+                    raise ValueError(f'Framework {self.framework} is not supported.')
 
                 if model is None:
-                    continue # sometimes keras fails to train a model (evaluates to nan)
+                    continue  # if keras fails to train a model (produces nan)
 
                 # Dump args
                 # model_args = self.ml_init_args.copy()
@@ -407,77 +399,73 @@ class LearningCurve():
                 dump_dict(model_args, trn_outdir/'model_args.txt')
 
                 # Save plot of target distribution
-                plot_hist(ytr_sub, title=f'(Train size={tr_sz})', path=trn_outdir/'hist_tr.png')
-                plot_hist(yvl, title=f'(Val size={len(yvl)})', path=trn_outdir/'hist_vl.png')
-                plot_hist(yte, title=f'(Test size={len(yte)})', path=trn_outdir/'hist_te.png')
+                # plot_hist(ytr_sub, title=f'(Train size={tr_sz})', path=trn_outdir/'hist_tr.png')
+                # plot_hist(yvl, title=f'(Val size={len(yvl)})', path=trn_outdir/'hist_vl.png')
+                # plot_hist(yte, title=f'(Test size={len(yte)})', path=trn_outdir/'hist_te.png')
 
                 # Calc preds and scores
                 # ... training set
-                y_pred, y_true = calc_preds(model, x=xtr_sub, y=ytr_sub, mltype=self.mltype)
-                tr_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
+                # y_pred, y_true = calc_preds(model, x=xtr_sub, y=ytr_sub, mltype=self.mltype)
+                # tr_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
                 # dump_preds(y_true, y_pred, meta=mtr_sub_df, outpath=trn_outdir/'preds_tr.csv')
                 # ... val set
-                y_pred, y_true = calc_preds(model, x=xvl, y=yvl, mltype=self.mltype)
-                vl_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
+                # y_pred, y_true = calc_preds(model, x=xvl, y=yvl, mltype=self.mltype)
+                # vl_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
                 # dump_preds(y_true, y_pred, meta=mvl_df, outpath=trn_outdir/'preds_vl.csv')
                 # ... test set
                 y_pred, y_true = calc_preds(model, x=xte, y=yte, mltype=self.mltype)
                 te_scores = calc_scores(y_true=y_true, y_pred=y_pred, mltype=self.mltype, metrics=None)
                 dump_preds(y_true, y_pred, meta=mte_df, outpath=trn_outdir/'preds_te.csv')
 
-                # del estimator, model
                 del model
 
                 # Store runtime
-                runtime_records.append((split_num, tr_sz, runtime))
+                runtime_records.append((split_num, tr_sz, runtime/3600))
 
                 # Add metadata
-                tr_scores['set'] = 'tr'
-                tr_scores['split'] = 'split' + str(split_num)
-                tr_scores['tr_size'] = tr_sz
+                # tr_scores['set'] = 'tr'
+                # tr_scores['split'] = 'split' + str(split_num)
+                # tr_scores['tr_size'] = tr_sz
 
-                vl_scores['set'] = 'vl'
-                vl_scores['split'] = 'split' + str(split_num)
-                vl_scores['tr_size'] = tr_sz
+                # vl_scores['set'] = 'vl'
+                # vl_scores['split'] = 'split' + str(split_num)
+                # vl_scores['tr_size'] = tr_sz
 
                 te_scores['set'] = 'te'
                 te_scores['split'] = 'split' + str(split_num)
                 te_scores['tr_size'] = tr_sz
 
                 # Append scores (dicts)
-                tr_scores_all.append(tr_scores)
-                vl_scores_all.append(vl_scores)
+                # tr_scores_all.append(tr_scores)
+                # vl_scores_all.append(vl_scores)
                 te_scores_all.append(te_scores)
 
                 # Dump intermediate scores
-                scores = pd.concat([scores_to_df([tr_scores]),
-                                    scores_to_df([vl_scores]),
-                                    scores_to_df([te_scores])], axis=0)
+                # scores = pd.concat([scores_to_df([tr_scores]),
+                #                     scores_to_df([vl_scores]),
+                #                     scores_to_df([te_scores])], axis=0)
+                scores = scores_to_df([te_scores])  # (new!)
                 scores.to_csv(trn_outdir/'scores.csv', index=False)
                 del trn_outdir, scores
 
-            # Dump intermediate results (this is useful if the run terminates before run ends)
-            # scores_all_df_tmp = pd.concat([scores_to_df(tr_scores_all), scores_to_df(vl_scores_all), scores_to_df(te_scores_all)], axis=0)
-            # scores_all_df_tmp.to_csv( self.outdir / ('tmp_lc_scores_split' + str(split_num) + '.csv'), index=False )
-
         # Scores to df
-        tr_scores_df = scores_to_df(tr_scores_all)
-        vl_scores_df = scores_to_df(vl_scores_all)
+        # tr_scores_df = scores_to_df(tr_scores_all)
+        # vl_scores_df = scores_to_df(vl_scores_all)
         te_scores_df = scores_to_df(te_scores_all)
-        scores_df = pd.concat([tr_scores_df, vl_scores_df, te_scores_df], axis=0)
+        # lc_scores = pd.concat([tr_scores_df, vl_scores_df, te_scores_df], axis=0)
+        lc_scores = scores_to_df(te_scores_all)  # (new!)
 
         # Dump final results
-        tr_scores_df.to_csv(self.outdir/'tr_lc_scores.csv', index=False)
-        vl_scores_df.to_csv(self.outdir/'vl_lc_scores.csv', index=False)
+        # tr_scores_df.to_csv(self.outdir/'tr_lc_scores.csv', index=False)
+        # vl_scores_df.to_csv(self.outdir/'vl_lc_scores.csv', index=False)
         te_scores_df.to_csv(self.outdir/'te_lc_scores.csv', index=False)
-        # scores_df.to_csv( self.outdir/'lc_scores.csv', index=False) 
 
         # Runtime df
         runtime_df = pd.DataFrame.from_records(
-            runtime_records, columns=['split', 'tr_sz', 'time(s)'])
+            runtime_records, columns=['split', 'tr_sz', 'time(hrs)'])
         runtime_df.to_csv(self.outdir/'runtime.csv', index=False)
 
-        return scores_df
+        return lc_scores
 
 
     def get_data_by_id(self, idx):
@@ -580,7 +568,7 @@ class LearningCurve():
 # --------------------------------------------------------------------------------
 
 
-def scores_to_df( scores_all ):
+def scores_to_df(scores_all):
     """ (tricky commands) """
     df = pd.DataFrame(scores_all)
     df_mlt = df.melt(id_vars=['split', 'tr_size', 'set'])
@@ -593,5 +581,3 @@ def scores_to_df( scores_all ):
     # df.columns.name = None
     # return df
     return df_mlt
-
-

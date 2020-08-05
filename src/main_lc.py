@@ -29,6 +29,7 @@ from utils.k_tuner import read_hp_prms
 # File path
 filepath = Path(__file__).resolve().parent
 
+
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate learning curves (LCs).')
     # Input data
@@ -70,12 +71,12 @@ def parse_args(args):
     # Feature types
     parser.add_argument('-fp', '--fea_prfx',
                         nargs='+',
-                        default=['ge','dd'],
-                        choices=['DD','GE','dd','ge'],
+                        default=['ge', 'dd'],
+                        choices=['DD', 'GE', 'dd', 'ge'],
                         help='Prefix to identify the features (default: [ge, dd]).')
     parser.add_argument('-fs', '--fea_sep',
                         default='_',
-                        choices=['.','_'],
+                        choices=['.', '_'],
                         help="Separator btw fea prefix and fea name (default: '_').")
     # Feature scaling
     parser.add_argument('-sc', '--scaler',
@@ -186,7 +187,6 @@ def run(args):
         rout = gout/args['rout']
     else:
         if splitdir is None:
-            # rout = gout/f'run'
             rout = gout
         else:
             rout = gout/f'split_{split_id}'
@@ -402,85 +402,14 @@ def run(args):
     # Dump all scores
     lc_scores.to_csv(rout/'lc_scores.csv', index=False)
 
-    # Load results and plot
-    # kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
-    # lc_plots.plot_lc_many_metric(lc_scores, outdir=rout, **kwargs)
-    # kwargs = {'tr_set': 'te', 'xtick_scale': 'linear', 'ytick_scale': 'linear'}
-    # lc_plots.plot_lc_many_metric( lc_scores, outdir=rout, **kwargs )
-
     # Dump args
     dump_dict(args, outpath=rout/'args.txt')
-
-    # ====================================
-    """
-    if args['plot_fit']:
-        figsize = (7, 5.5)
-        metric_name = 'mean_absolute_error'
-        xtick_scale, ytick_scale = 'log2', 'log2'
-        plot_args = {'metric_name': metric_name, 'xtick_scale': xtick_scale, 'ytick_scale': xtick_scale, 'figsize': figsize}
-
-        scores_te = lrn_crv_scores[(lrn_crv_scores.metric==metric_name) & (lrn_crv_scores.set=='te')].sort_values('tr_size').reset_index(drop=True)
-
-        # -----  Finally plot power-fit  -----
-        tot_pnts = len(scores_te['tr_size'])
-        n_pnts_fit = 8 # Number of points to use for curve fitting starting from the largest size
-
-        y_col_name = 'fold0'
-        ax = None
-
-        ax = lc_plots.plot_lrn_crv_new(
-                x=scores_te['tr_size'][0:], y=scores_te[y_col_name][0:],
-                ax=ax, ls='', marker='v', alpha=0.7,
-                **plot_args, label='Raw Data')
-
-        size_min_idx = 0 if tot_pnts < n_pnts_fit else tot_pnts - n_pnts_fit
-
-        ax, _, gof = lc_plots.plot_lrn_crv_power_law(
-                x=scores_te['tr_size'][size_min_idx:], y=scores_te[y_col_name][size_min_idx:],
-                **plot_args, plot_raw=False, ax=ax, alpha=1 );
-
-        ax.legend(frameon=True, fontsize=10, loc='best')
-        plt.tight_layout()
-        plt.savefig(args['outdir']/f'power_law_fit_{metric_name}.png')
-
-        # -----  Extrapolation  -----
-        n_pnts_ext = 1 # Number of points to extrapolate to
-        n_pnts_fit = 6 # Number of points to use for curve fitting starting from the largest size
-
-        tot_pnts = len(scores_te['tr_size'])
-        m0 = tot_pnts - n_pnts_ext
-        size_min_idx = m0 - n_pnts_fit
-
-        ax = None
-
-        # Plot of all the points
-        ax = lc_plots.plot_lrn_crv_new(
-                x=scores_te['tr_size'][0:size_min_idx], y=scores_te[y_col_name][0:size_min_idx],
-                ax=ax, ls='', marker='v', alpha=0.8, color='k',
-                **plot_args, label='Excluded Points')
-
-        # Plot of all the points
-        ax = lc_plots.plot_lrn_crv_new(
-                x=scores_te['tr_size'][size_min_idx:m0], y=scores_te[y_col_name][size_min_idx:m0],
-                ax=ax, ls='', marker='*', alpha=0.8, color='g',
-                **plot_args, label='Included Points')
-
-        # Extrapolation
-        ax, _, mae_et = lc_plots.lrn_crv_power_law_extrapolate(
-                x=scores_te['tr_size'][size_min_idx:], y=scores_te[y_col_name][size_min_idx:],
-                n_pnts_ext=n_pnts_ext,
-                **plot_args, plot_raw_it=False, label_et='Extrapolation', ax=ax );
-
-        ax.legend(frameon=True, fontsize=10, loc='best')
-        plt.savefig(args['outdir']/f'power_law_ext_{metric_name}.png')
-    """
-    # ====================================
 
     # ------------------------------------------------------
     if (time()-t0)//3600 > 0:
         print_fn('Runtime: {:.1f} hrs'.format((time()-t0)/3600))
     else:
-        print_fn('Runtime: {:.1f} min'.format((time()-t0)/60))
+        print_fn('Runtime: {:.1f} mins'.format((time()-t0)/60))
 
     print_fn('Done.')
     lg.kill_logger()

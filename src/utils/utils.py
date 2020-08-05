@@ -19,20 +19,20 @@ def verify_path(path):
     return path
 
 
-def load_data( datapath, file_format=None ):
-    datapath = verify_path( datapath )
+def load_data(datapath, file_format=None):
+    datapath = verify_path(datapath)
     if file_format is None:
         file_format = str(datapath).split('.')[-1]
 
     if file_format=='parquet':
-        data = pd.read_parquet( datapath )
+        data = pd.read_parquet(datapath)
     elif file_format=='hdf5':
-        data = pd.read_hdf5( datapath )
+        data = pd.read_hdf5(datapath)
     elif file_format=='csv':
-        data = pd.read_csv( datapath )
+        data = pd.read_csv(datapath)
     else:
         try:
-            data = pd.read_csv( datapath )
+            data = pd.read_csv(datapath)
         except:
             print('Cannot load file', datapath)
     return data
