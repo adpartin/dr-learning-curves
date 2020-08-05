@@ -23,6 +23,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from sklearn.metrics import matthews_corrcoef
+
 # Utils
 from learningcurve.lc_plots import plot_lc_many_metric
 
@@ -61,12 +63,10 @@ def agg_scores(run_dirs):
 def agg_scores_02(run_dirs):
     """ Aggregate scores from LC runs. Instead of using lc_scores.csv, load
     scores from scores.csv that located in each split0_sz* folder. """
-    # TODO: write this func!
-    scores = []
+    dfs = []
 
     for rn_dr in run_dirs:
 
-        # sz_dirs = glob(str(r/'*_sz*'))
         sz_dirs = sorted(rn_dr.glob('*_sz*'))
         for sz_dr in sz_dirs:
 
@@ -74,37 +74,47 @@ def agg_scores_02(run_dirs):
             if not dpath.exists():
                 continue
 
-            scr = pd.read_csv(dpath)
-            scr['split'] = Path(rn_dr).name
-            scores.append(scr)
+            df = pd.read_csv(dpath)
+            df = df.drop(columns='split')
 
-    scores = pd.concat(scores, axis=0)
+            # --------------------
+            # Add MCC to scores
+            # --------------------
+            preds_path = Path(sz_dr, 'preds_te.csv')  # load preds
+            df_pred = pd.read_csv(preds_path)
+            y_cls_true = df_pred['y_true'].map(lambda x: 0 if x > 0.5 else 1).values
+            y_cls_pred = df_pred['y_pred'].map(lambda x: 0 if x > 0.5 else 1).values
+            mcc = matthews_corrcoef(y_cls_true, y_cls_pred)
+            df_mcc = pd.DataFrame([[df['tr_size'][0], 'te', 'mcc', mcc]],
+                                  columns=['tr_size', 'set', 'metric', 'score'])
+            df = pd.concat([df, df_mcc], axis=0).reset_index(drop=True)
+
+            df['split'] = Path(rn_dr).name
+            dfs.append(df)
+
+    scores = pd.concat(dfs, axis=0)
     return scores
 
 
 def run(args):
     res_dir = Path(args.res_dir).resolve()
-    dir_name = res_dir.name # .split('.')[1]
 
-    # run_dirs = glob(str(res_dir/'run*'))
     run_dirs = sorted(res_dir.glob('run*'))
     # scores = agg_scores(run_dirs)
     scores = agg_scores_02(run_dirs)
 
     print('Training set sizes:', np.unique(scores.tr_size))
 
-    te_scores = scores[scores['set']=='te'].reset_index(drop=True)
-    te_scores_mae = scores[(scores['metric']=='mean_absolute_error') &
-                           (scores['set']=='te')].reset_index(drop=True)
+    te_scores = scores[scores['set'] == 'te'].reset_index(drop=True)
+    te_scores_mae = scores[(scores['metric'] == 'mean_absolute_error') &
+                           (scores['set'] == 'te')].reset_index(drop=True)
 
-    save = True
-    if save:
-        scores.to_csv(res_dir/'all_scores.csv', index=False)
-        te_scores.to_csv(res_dir/'te_scores.csv', index=False)
-        te_scores_mae.to_csv(res_dir/'te_scores_mae.csv', index=False)
+    scores.to_csv(res_dir/'all_scores.csv', index=False)
+    te_scores.to_csv(res_dir/'te_scores.csv', index=False)
+    te_scores_mae.to_csv(res_dir/'te_scores_mae.csv', index=False)
 
     kwargs = {'tr_set': 'te', 'xtick_scale': 'log2', 'ytick_scale': 'log2'}
-    ax = plot_lc_many_metric(scores, metrics=['mean_absolute_error', 'r2'],
+    ax = plot_lc_many_metric(scores, metrics=['mean_absolute_error', 'r2', 'mcc'],
                              outdir=res_dir, **kwargs)
 
 

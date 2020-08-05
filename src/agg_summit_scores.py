@@ -7,7 +7,6 @@ from pathlib import Path
 import argparse
 from glob import glob
 
-import sklearn
 import numpy as np
 import pandas as pd
 
@@ -35,22 +34,22 @@ def agg_scores(cnt_dirs):
     if len(cnt_dirs) == 0:
         print('Empty dir (no files).')
         return pd.DataFrame(), []
-    
+
     dfs = []
     missing = []  # runs that were not completed (no scores.csv)
 
     for i, cnt_dr in enumerate(cnt_dirs):
         print(cnt_dr)
         # scores_path = glob( str(Path(d)/'**'/'lc_scores.csv') )
-        sp_dirs = sorted(cnt_dr.glob('*/split0_sz*'))
+        sz_dirs = sorted(cnt_dr.glob('*/split0_sz*'))
 
-        for j, sp_dr in enumerate(sp_dirs):
-            scores_path = Path(sp_dr, 'scores.csv')  # Load scores
+        for j, sz_dr in enumerate(sz_dirs):
+            scores_path = Path(sz_dr, 'scores.csv')  # Load scores
 
             if not scores_path.exists():
-                dct = {'exp': str(sp_dr).split(os.sep)[-4],
-                       'run': str(sp_dr).split(os.sep)[-3],
-                       'sz': int(str(sp_dr).split(os.sep)[-1].split('_sz')[-1])
+                dct = {'exp': str(sz_dr).split(os.sep)[-4],
+                       'run': str(sz_dr).split(os.sep)[-3],
+                       'sz': int(str(sz_dr).split(os.sep)[-1].split('_sz')[-1])
                        }
                 missing.append(dct)
 
@@ -59,11 +58,10 @@ def agg_scores(cnt_dirs):
                 df = df.drop(columns='split')
 
                 # --------------------
-                # Calc and add MCC
+                # Add MCC to scores
                 # --------------------
-                preds_path = Path(sp_dr, 'preds_te.csv')  # load preds
+                preds_path = Path(sz_dr, 'preds_te.csv')  # load preds
                 df_pred = pd.read_csv(preds_path)
-                # df['AUC_bin_pred'] = 0 if df['y_pred'] > 0.5 else 1
                 y_cls_true = df_pred['y_true'].map(lambda x: 0 if x > 0.5 else 1).values
                 y_cls_pred = df_pred['y_pred'].map(lambda x: 0 if x > 0.5 else 1).values
                 mcc = matthews_corrcoef(y_cls_true, y_cls_pred)
@@ -87,11 +85,10 @@ def agg_scores(cnt_dirs):
 
 def run(args):
     res_dir = Path(args.res_dir).resolve()
-    dir_name = res_dir.name
 
     cnt_dirs = sorted(res_dir.glob('cnt*split*trial*'))
-    scores, missing = agg_scores(cnt_dirs); 
-    
+    scores, missing = agg_scores(cnt_dirs)
+
     print(scores.shape)
     print('Unique splits: {}'.format(scores['split'].unique()))
     print('Unique sizes:  {}'.format(sorted(scores['tr_size'].unique())))
@@ -104,7 +101,7 @@ def main(args):
     args = parse_args(args)
     score = run(args)
     return None
-    
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
