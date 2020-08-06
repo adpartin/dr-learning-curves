@@ -100,7 +100,7 @@ else:
         main_fn(s, r, *other_args_run) # only one split for every run
 
 t_end = time() - t0
-print('Runtime {:.2f} mins'.format( t_end/60 ))
+print('Runtime {:.1f} mins'.format(t_end/60))
 print('Done.')
 
 
