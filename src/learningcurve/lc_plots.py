@@ -115,7 +115,8 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
 
     # Plot median
     if plot_median:
-        aa = df.groupby(['metric', 'tr_size']).agg({'score': 'median'}).reset_index().rename(columns={'score': 'median'})
+        aa = df.groupby(['metric', 'tr_size']).agg({'score': 'median'})
+        aa = aa.reset_index().rename(columns={'score': 'median'})
         ax = plot_lc(
             x=aa['tr_size'], y=aa['median'], yerr=None,
             ls='--', marker='.', alpha=0.7, color='r',

@@ -49,12 +49,12 @@ parser.add_argument('--par_jobs',
                     type=int,
                     help='Number of joblib parallel jobs (default: 1).')
 args, other_args = parser.parse_known_args()
+print(args)
 
 
 # Number of parallel jobs
 par_jobs = int(args.par_jobs)
 assert par_jobs > 0, f"The arg 'par_jobs' must be at least 1 (got {par_jobs})"
-
 
 if args.splitdir is not None:
     main_fn = run_split_ids
@@ -80,7 +80,6 @@ else:
     n_splits = args.n_splits
     # other_args.extend(['--splitdir', args.splitdir]) 
 
-
 # Main execution
 t0 = time()
 if par_jobs > 1:
@@ -100,7 +99,7 @@ else:
         main_fn(s, r, *other_args_run) # only one split for every run
 
 t_end = time() - t0
-print('Runtime {:.2f} mins'.format( t_end/60 ))
+print('Runtime {:.1f} mins'.format(t_end/3600))
 print('Done.')
 
 
