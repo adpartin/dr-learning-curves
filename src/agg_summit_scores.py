@@ -20,7 +20,7 @@ filepath = Path(__file__).resolve().parent
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Aggregate LC data.')
-    parser.add_argument('-i', '--res_dir',
+    parser.add_argument('-r', '--res_dir',
                         required=True,
                         default=None,
                         type=str,
@@ -94,6 +94,8 @@ def run(args):
     print('Unique sizes:  {}'.format(sorted(scores['tr_size'].unique())))
 
     scores.to_csv(res_dir/'all_scores.csv', index=False)
+    if len(missing):
+        missing.to_csv(res_dir/'missing.csv', index=False)
     print('Done.')
 
 
