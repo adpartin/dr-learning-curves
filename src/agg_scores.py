@@ -66,6 +66,7 @@ def agg_scores_02(run_dirs):
     dfs = []
 
     for rn_dr in run_dirs:
+        print(rn_dr)
 
         sz_dirs = sorted(rn_dr.glob('*_sz*'))
         for sz_dr in sz_dirs:

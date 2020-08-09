@@ -360,6 +360,10 @@ def run(args):
                          }
         keras_clr_kwargs = {}
 
+    # trn_args = ml_init_kwargs
+    # trn_args.update(ml_fit_kwargs)
+    # dump_dict(trn_args, outpath=rout/'trn.args.txt')
+
     # Print NN
     if len(ml_init_kwargs) and ('nn' in args['ml']):
         model = ml_model_def(**ml_init_kwargs)
