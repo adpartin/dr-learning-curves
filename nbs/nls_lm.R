@@ -35,7 +35,8 @@ summary_coefs <- function(model) {
 
 
 # fit_nlsLM_power_law <- function(dfit, startParams=list(a=1.2, b=-0.5, c=0.06)) {
-fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.3, c=0.03)) {  
+# fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.3, c=0.03)) {
+fit_nlsLM_power_law <- function(x, y, w, a=1.2, b=-0.3, c=0.03) {
   # www.r-bloggers.com/a-better-nls/
   # stackoverflow.com/questions/18364402
   
@@ -44,6 +45,10 @@ fit_nlsLM_power_law <- function(x, y, w, startParams=list(a=1.2, b=-0.3, c=0.03)
   # https://docs.tibco.com/pub/enterprise-runtime-for-R/5.0.0/doc/html/Language_Reference/stats/deriv.html
   gradF <- deriv3(~a*(x^b) + c, c('a','b','c'), function(a,b,c,x) NULL);
   dfit <- data.frame(x=x, y=y, w=w)
+                  
+  # startParams; New!
+  # startParams = list(a=1.2, b=-0.3, c=0.03)
+  startParams = list(a=b, b=b, c=c)
   
   # Fit model with nls
   model <- minpack.lm::nlsLM(

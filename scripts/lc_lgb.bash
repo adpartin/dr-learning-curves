@@ -2,6 +2,8 @@
 
 # Example:
 # bash scripts/lc_lgb.bash ctrp 16 none
+# bash scripts/lc_lgb.bash gdsc1 16 none
+# bash scripts/lc_lgb.bash gdsc2 16 none
 # bash scripts/lc_lgb.bash nci60 2 random
 
 SOURCE=$1
@@ -10,14 +12,17 @@ SAMPLING=$3
 
 MODEL="lgb"
 
-OUTDIR=lc.out.${SOURCE}.lgb
+# OUTDIR=lc.out.${SOURCE}.lgb
+OUTDIR=lc.out.new.r2fit_03
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
 # LC_SIZES=7
+# LC_SIZES=10
 # LC_SIZES=12
 # LC_SIZES=25
+LC_SIZES=40
 # LC_SIZES=50
 
 echo "Source:   $SOURCE"
@@ -45,26 +50,17 @@ fi
 ls_hpo_dir=lgb.hpo.prms/${SOURCE}.lgb.hpo
 
 # gout=$OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo
-gout=$OUTDIR/lc.${SOURCE}.${MODEL}.dflt.low_range
+gout=$OUTDIR/lc.${SOURCE}.${MODEL}.dflt
 
 echo "dpath: $dpath"
 echo "spath: $spath"
 echo "gout:  $gout"
 
-# python src/main_lc.py \
-#     -dp $dpath \
-#     -sd $spath \
-#     --ml $MODEL \
-#     --gout $OUTDIR/lc.${SOURCE}.${MODEL}.ls_hpo \
-#     --ls_hpo_dir $ls_hpo_dir \
-#     --lc_sizes $LC_SIZES \
-#     --n_jobs $PAR_JOBS 
+min_size=10
+# min_size=20000
+# min_size=50000
 
-# max_size=1024
-min_size=4
-max_size=2000
-LC_SIZES=25
-
+# Default
 python src/batch_lc.py \
     -dp $dpath \
     -sd $spath \
@@ -72,10 +68,19 @@ python src/batch_lc.py \
     --gout $gout \
     --lc_sizes $LC_SIZES \
     --min_size $min_size \
-    --max_size $max_size \
     --n_jobs 8 \
     --n_splits 20 \
     --par_jobs $PAR_JOBS 
 
-    # --ls_hpo_dir $ls_hpo_dir \
-    # --min_size $min_size \
+# # HPO
+# python src/batch_lc.py \
+#     -dp $dpath \
+#     -sd $spath \
+#     --ml $MODEL \
+#     --gout $gout \
+#     --ls_hpo_dir $ls_hpo_dir \
+#     --lc_sizes $LC_SIZES \
+#     --min_size $min_size \
+#     --n_jobs 8 \
+#     --n_splits 20 \
+#     --par_jobs $PAR_JOBS 

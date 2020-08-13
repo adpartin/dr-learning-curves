@@ -33,7 +33,7 @@ def fit_params(x, y) -> tuple:
     # prms_dct['alpha'], prms_dct['beta'], prms_dct['gamma'] = b, c-0.5, a
     
     prms_dct['alpha'] = b
-    prms_dct['beta'] = c-0.5
+    prms_dct['beta'] = c - 0.5
     prms_dct['gamma'] = a
     # return (a, b, c-0.5)
     return prms_dct

@@ -308,7 +308,7 @@ def data_prep_nn0_def(xdata):
     This function works in a similar way as DataLoader
     in PyTorch.
     """
-    xdata = np.asarray( xdata )
+    xdata = np.asarray(xdata)
     x_dct = {'inputs': xdata}
     return x_dct
 
@@ -520,7 +520,7 @@ def data_prep_nn1_def(xdata):
     """
     x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
     x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
-    x_ge = np.asarray( x_ge )
-    x_dd = np.asarray( x_dd )
+    x_ge = np.asarray(x_ge)
+    x_dd = np.asarray(x_dd)
     x_dct = {'in_ge': x_ge, 'in_dd': x_dd}
     return x_dct

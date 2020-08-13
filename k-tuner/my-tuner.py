@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband
+from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband, Sklearn
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
@@ -132,7 +132,7 @@ def data_prep_nn1_def(xdata):
 # ------------------------------------------------------------
 
 
-data_sources = ['gdsc', 'ctrp', 'nci60', 'top21']
+data_sources = ['gdsc', 'gdsc1', 'gdsc2', 'ctrp', 'nci60', 'top21']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--source', type=str, default='gdsc', choices=data_sources)
@@ -140,11 +140,11 @@ parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--tr_sz', type=int, default=None)
 parser.add_argument('--vl_sz', type=int, default=None)
 parser.add_argument('--ml', type=str, default='nn_reg0',
-                    choices=['nn_reg0', 'nn_reg1'])
+                    choices=['nn_reg0', 'nn_reg1', 'lgb'])
 args = parser.parse_args()
 
-DATADIR = fpath/'../data/ml.dfs'
-datapath = DATADIR/f'data.{args.source}.dd.ge.raw/data.{args.source}.dd.ge.raw.parquet'
+DATADIR = fpath/'../data/ml.dfs/July2020'
+datapath = DATADIR/f'data.{args.source}.dd.ge/data.{args.source}.dd.ge.parquet'
 
 print_fn = print
 source = [str(s) for s in data_sources if s in str(datapath)][0]
@@ -154,13 +154,18 @@ else:
     outdir = fpath/f'{source}_{args.ml}_tuner_out'
 os.makedirs(outdir, exist_ok=True)
 
-lg = Logger( outdir/'tuner.log' )
+lg = Logger(outdir/'tuner.log')
 print_fn = get_print_func( lg.logger )
 
 if args.ml == 'nn_reg0':
     data_prep_def = data_prep_nn0_def
 elif args.ml == 'nn_reg1':
     data_prep_def = data_prep_nn1_def
+elif args.ml == 'lgb':
+    def data_prep_lgb_def(xdata):
+        return xdata
+    data_prep_def = data_prep_lgb_def
+
 
 import pdb; pdb.set_trace()
 xtr, ytr, xvl, yvl = get_data(datapath,
@@ -171,6 +176,43 @@ xtr, ytr, xvl, yvl = get_data(datapath,
                               print_fn=print)
 tr_sz = len(ytr)
 
+
+# ------------------------------------------------
+# Try Sklearn tuner for LightGBM
+# ------------------------------------------------
+import lightgbm as lgb
+def build_lgb(hp):
+    model = lgb.LGBMRegressor(
+        n_estimators=hp.Int('n_estimators', 100, 3000, step=100),
+        max_depth=hp.Int('max_depth', 10, 100, step=10, default=10),
+        num_leaves=hp.Int('num_leaves', 10, 200, step=10, default=10),
+        learning_rate=hp.Float('learning_rate', min_value=1e-2, max_value=0.5e-1,
+                      sampling='LOG', default=1e-1)
+        n_jobs=8,
+        random_state=None)
+
+import sklearn
+tuner = Sklearn(
+        oracle=BayesianOptimization(
+            objective=kt.Objective('score', direction='min'),
+            max_trials=100),
+        hypermodel=build_model,
+        scoring=sklearn.metrics.make_scorer(sklearn.metrics.mean_absolute_error),
+        cv=sklearn.model_selection.KFold(5),
+        directory=outdir,
+        project_name=proj_name,
+        overwrite=True)
+
+tuner = RandomSearch(
+    hypermodel,
+    objective=OBJECTIVE,
+    max_trials=MAX_TRIALS,
+    executions_per_trial=EXECUTIONS_PER_TRIAL,
+    distribution_strategy=dist_strategy,
+    directory=outdir,
+    project_name=proj_name,
+    overwrite=True)
+# ------------------------------------------------
 
 """Basic case:
 - We define a `build_model` function
@@ -236,7 +278,7 @@ class HyModelNN0(HyperModel):
 
         hp_lr = hp.Float('learning_rate', min_value=1e-4, max_value=1e-2,
                          sampling='LOG', default=1e-3)
-        opt = keras.optimizers.Adam( hp_lr )
+        opt = keras.optimizers.Adam(hp_lr)
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mae'])
         return model
 

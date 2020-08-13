@@ -13,17 +13,21 @@ from rpy2.robjects.conversion import localconverter
 #     return alpha * x**(beta) + gamma
 
 
-def fit_model(x: ro.IntVector, y: ro.FloatVector, w: ro.FloatVector):
+# def fit_model(x: ro.IntVector, y: ro.FloatVector, w: ro.FloatVector):
+def fit_model(x: ro.IntVector, y: ro.FloatVector, w: ro.FloatVector,
+              a: float=1.2, b: float=-0.3, c: float=0.03):
     """ ... """
     x = ro.IntVector(list(x))
     y = ro.FloatVector(list(y))
     w = ro.FloatVector(list(w))
+    # startParams = ro.FloatVector(list(startParams))  # new!
     
     # script = '\'../fit.R\''
     script = '\'nls_lm.R\''
     ro.r('''source({})'''.format(script))
     fit_nlsLM_power_law = ro.globalenv['fit_nlsLM_power_law']
-    coef_est_r = fit_nlsLM_power_law(x, y, w)
+    # coef_est_r = fit_nlsLM_power_law(x, y, w)  # commened!
+    coef_est_r = fit_nlsLM_power_law(x, y, w, a, b, c)  # new!
     
     # coef_est_py = pandas2ri.ri2py_dataframe(coef_est_r)
     with localconverter(ro.default_converter + pandas2ri.converter):

@@ -37,13 +37,38 @@ from nls_lm import fit_model #, fit_params, biased_powerlaw
 # print(filepath)
 
 
+def drop_bad_r2(df):
+    """ Remove runs with negative R2. """
+    if df is None:
+        return None
+    else:
+        print(df.shape)
+        df['id'] = [str(sz)+'_'+str(r) for sz, r in zip(df['tr_size'], df['run'])]
+        aa = df[ df['metric']=='r2' ]
+        aa['valid'] = aa['score'] > 0
+        ids_valid = aa[ aa['valid']==True ].id.unique()
+        aa = df[ df['id'].isin(ids_valid) ]
+        print(aa.shape)
+    return aa
+
+
+def print_count(aa):
+    # aa = nn0_rnd
+    aa['one'] = 1
+    aa = aa[(aa['set']=='te') & (aa['metric']=='mean_absolute_error')]
+    display(aa.groupby(['tr_size']).agg({'one': 'sum'}).sort_values('tr_size').reset_index())
+
+    
 def load_data(path, tr_set='te'):
     """ Load scores. """
-    df = pd.read_csv(path);
-    df.rename(columns={'split': 'run'}, inplace=True)
-    if tr_set != 'all':
-        df = df[ df['set'] == tr_set ].reset_index(drop=True)
-    return df
+    if path is None:
+        return None
+    else:
+        df = pd.read_csv(path);
+        df.rename(columns={'split': 'run'}, inplace=True)
+        if tr_set != 'all':
+            df = df[ df['set'] == tr_set ].reset_index(drop=True)
+        return df
 
 
 def load_data_hpc(path, tr_set='te'):
@@ -64,9 +89,12 @@ def subset_data(df, col='tr_size', x_mn=None, x_mx=None):
     return df
 
 
-def add_weight_col(df):
+def add_weight_col(df, binomial=False):
     """ ... """
-    df['w'] = df['tr_size']/df['tr_size'].max()
+    if binomial:
+        df['w'] = df['tr_size'] / ( df['y'] * (1-df['y']) )
+    else:
+        df['w'] = df['tr_size'] / df['tr_size'].max()
     return df
 
 
@@ -92,7 +120,8 @@ from rpy2.robjects.conversion import localconverter
 
 class FitPwrLaw():
     
-    def __init__(self, xf, yf, w=None):
+    # def __init__(self, xf, yf, w=None):
+    def __init__(self, xf, yf, w=None, a: float=1.2, b: float=-0.3, c: float=0.03):
         assert len(xf) == len(yf), 'xf and yf must be equal size.'
         self.xf = xf
         self.yf = yf
@@ -102,8 +131,14 @@ class FitPwrLaw():
         else:
             w = np.ones( (len(self.xf),) )
             
+        # New!
+        self.a = a
+        self.b = b
+        self.c = c
+            
         self.fit_model()
-        
+        # self.fit_params()
+
         
     def fit_model(self):
     # def fit_model(x: ro.IntVector, y: ro.FloatVector, w: ro.FloatVector):
@@ -116,7 +151,9 @@ class FitPwrLaw():
         script = '\'nls_lm.R\''
         ro.r('''source({})'''.format(script))
         fit_nlsLM_power_law = ro.globalenv['fit_nlsLM_power_law']
-        coef_est_r = fit_nlsLM_power_law(x, y, w)
+        # coef_est_r = fit_nlsLM_power_law(x, y, w)  # commented
+        coef_est_r = fit_nlsLM_power_law(x, y, w,
+                                         a=self.a, b=self.b, c=self.c)  # new!
 
         # coef_est_py = pandas2ri.ri2py_dataframe(coef_est_r)
         with localconverter(ro.default_converter + pandas2ri.converter):
@@ -127,6 +164,30 @@ class FitPwrLaw():
         self.b = self.coefs.loc[ self.coefs['coef'] == 'b', 'est'].values
         self.c = self.coefs.loc[ self.coefs['coef'] == 'c', 'est'].values
     
+    
+    def fit_params(self):
+        x = ro.IntVector(list(self.xf))
+        y = ro.FloatVector(list(self.yf))
+        
+        script = '\'fit.R\''
+        # script = '\'../fit.R\''
+        ro.r('''source({})'''.format(script))
+        get_params = ro.globalenv['model_param']
+        a, b, c = get_params(x, y)
+
+        # gamma, alpha, beta = get_params(x, y)
+        prms = {}
+        # prms_dct['alpha'], prms_dct['beta'], prms_dct['gamma'] = b, c-0.5, a
+
+        prms['alpha'] = b
+        prms['beta'] = c - 0.5
+        prms['gamma'] = a
+        
+        self.prms = prms
+        self.a = self.prms['alpha']
+        self.b = self.prms['beta']
+        self.c = self.prms['gamma']
+        
     
     def calc_fit(self, x=None, x1=None, x2=None):
         """ Calculate the fit. """
