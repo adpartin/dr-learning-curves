@@ -3,6 +3,7 @@
 # Example:
 # lc_keras.bash ctrp nn_reg0 0
 # lc_keras.bash ctrp nn_reg0 0 1
+# lc_keras.bash ctrp nn_reg00 0 0
 
 SOURCE=$1
 MODEL=$2
@@ -11,13 +12,15 @@ SPLIT=$4
 
 # Call this function from the main project dir!
 OUTDIR=lc.out.${SOURCE}.split${SPLIT}
+# OUTDIR=lc.out.new.${SOURCE}.split${SPLIT}
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
 # LC_SIZES=5
 # LC_SIZES=7
-LC_SIZES=15
+LC_SIZES=10
 
+# EPOCH=1
 # EPOCH=2
 # EPOCH=10
 EPOCH=500
@@ -37,8 +40,8 @@ spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.splits
 # ps_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ps_hpo
 ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
 
-# n_runs=1
-n_runs=3
+n_runs=1
+# n_runs=3
 for r in $(seq 1 $n_runs); do
     echo "Run $r"
 

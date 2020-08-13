@@ -116,7 +116,10 @@ def parse_args(args):
     # Model
     parser.add_argument('--ml',
                         default='lgb', type=str,
-                        choices=['lgb', 'nn_reg0', 'nn_reg1', 'nn_attn0', 'nn_attn1'],
+                        choices=['lgb',
+                                 'nn_reg0', 'nn_reg1',
+                                 'nn_reg00', 'nn_reg11',
+                                 'nn_attn0', 'nn_attn1'],
                         help='Choose ML model (default: lgb).')
     # NN HPs
     parser.add_argument('--epoch', default=1, type=int,
@@ -277,9 +280,9 @@ def run(args):
         keras_callbacks_def = None
         keras_clr_kwargs = None
 
-    elif (args['ml'] == 'nn_reg0') or (args['ml'] == 'nn_attn0'):
+    elif (args['ml'] == 'nn_reg0') or (args['ml'] == 'nn_attn0') or (args['ml'] == 'nn_reg00'):
         # Keras model def
-        from models.keras_model import (nn_reg0_model_def, nn_attn0_model_def,
+        from models.keras_model import (nn_reg0_model_def, nn_attn0_model_def, nn_reg00_model_def,
                                         data_prep_nn0_def, model_callback_def)
         framework = 'keras'
         mltype = 'reg'
@@ -290,6 +293,8 @@ def run(args):
             ml_model_def = nn_reg0_model_def
         elif (args['ml'] == 'nn_attn0'):
             ml_model_def = nn_attn0_model_def
+        elif (args['ml'] == 'nn_reg00'):
+            ml_model_def = nn_reg00_model_def
 
         if (ps_hpo_dir is not None):
             ml_init_kwargs = {'input_dim': xdata.shape[1],
@@ -317,8 +322,8 @@ def run(args):
         # keras_clr_kwargs = {'mode': 'exp', 'base_lr': 0.00005, 'max_lr': 0.0005, 'gamma': 0.999994}
         # model = ml_model_def(**ml_init_kwargs)
 
-    elif (args['ml'] == 'nn_reg1') or (args['ml'] == 'nn_attn1'):
-        from models.keras_model import (nn_reg1_model_def, nn_attn1_model_def,
+    elif (args['ml'] == 'nn_reg1') or (args['ml'] == 'nn_attn1') or (args['ml'] == 'nn_reg11'):
+        from models.keras_model import (nn_reg1_model_def, nn_attn1_model_def, nn_reg11_model_def,
                                         data_prep_nn1_def, model_callback_def)
         framework = 'keras'
         mltype = 'reg'
@@ -329,6 +334,8 @@ def run(args):
             ml_model_def = nn_reg1_model_def
         elif (args['ml'] == 'nn_attn1'):
             ml_model_def = nn_attn1_model_def
+        elif (args['ml'] == 'nn_reg11'):
+            ml_model_def = nn_reg11_model_def
 
         x_ge = extract_subset_fea(xdata, fea_list=['ge'], fea_sep='_')
         x_dd = extract_subset_fea(xdata, fea_list=['dd'], fea_sep='_')
@@ -365,6 +372,7 @@ def run(args):
     # dump_dict(trn_args, outpath=rout/'trn.args.txt')
 
     # Print NN
+    # import pdb; pdb.set_trace()
     if len(ml_init_kwargs) and ('nn' in args['ml']):
         model = ml_model_def(**ml_init_kwargs)
         model.summary(print_fn=lg.logger.info)
