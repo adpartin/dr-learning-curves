@@ -38,7 +38,7 @@ get_model <- function(data) {
   eplaw_models <- data %>%
     do(model = nls(error ~ plaw_selfStart(training.examples, a, b, c),
                    data=.,
-                   control=nls.control(warnOnly=TRUE,maxiter=100000,tol=1e-4,minFactor=1e-7),
+                   control=nls.control(warnOnly=TRUE, maxiter=100000, tol=1e-4, minFactor=1e-7),
                    weights=bionomial(.)));
   return(eplaw_models$model[[1]])
 }
