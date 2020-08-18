@@ -110,7 +110,7 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
     # ax = None
     ax = plot_lc(
         x=df['tr_size'], y=df['score'], yerr=None,
-        metric_name=metric_name, label='All scores',
+        metric_name=metric_name, label='Raw scores',
         ax=ax, **plot_args);
 
     # Plot median
@@ -130,7 +130,7 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
 
 def plot_lc(x, y, yerr=None, metric_name:str='score',
             xtick_scale:str='log2', ytick_scale:str='log2',
-            xlim:list=None, ylim:list=None, title:str=None, figsize=(7,5),
+            xlim:list=None, ylim:list=None, title:str=None, figsize=(7, 5),
             ls='', marker='.', 
             color='b', markerfacecolor=None, markeredgecolor=None, alpha=0.7,
             label:str=None, ax=None):

@@ -80,21 +80,43 @@ def load_data_hpc(path, tr_set='te'):
     return df
 
 
+def fit_data(df, x_fit_mn=0, x_fit_mx=None, met='mean_absolute_error',
+             method='linear'):
+    """ Return df with the median computed for the met. """
+    if df is None:
+        return None
+    
+    df = df[ df['metric']==met ].reset_index(drop=True)
+    df['y'] = df['score']
+    df = df[df['metric']==met].groupby('tr_size').agg({'y': 'median'}).reset_index()
+    
+    dfit = subset_data(df, col='tr_size', x_mn=x_fit_mn, x_mx=x_fit_mx)
+    # dfit = add_weight_col( dfit, binomial=False )
+    dfit = add_weight_col( dfit, method=method )
+    return dfit
+
+
+# def add_weight_col(df, binomial=False):
+def add_weight_col(df, method='linear'):
+    """ ... """
+    if method == 'const':
+        df['w'] = 1
+        
+    elif method == 'linear':
+        df['w'] = df['tr_size'] / df['tr_size'].max()
+        
+    elif method == 'binomial':
+        df['w'] = df['tr_size'] / ( df['y'] * (1-df['y']) )
+        
+    return df
+
+
 def subset_data(df, col='tr_size', x_mn=None, x_mx=None):
     """ Subset df based on range. """
     if x_mn is not None:
         df = df[ df[col] >= x_mn ].reset_index(drop=True)
     if x_mx is not None:
         df = df[ df[col] <= x_mx ].reset_index(drop=True)
-    return df
-
-
-def add_weight_col(df, binomial=False):
-    """ ... """
-    if binomial:
-        df['w'] = df['tr_size'] / ( df['y'] * (1-df['y']) )
-    else:
-        df['w'] = df['tr_size'] / df['tr_size'].max()
     return df
 
 
