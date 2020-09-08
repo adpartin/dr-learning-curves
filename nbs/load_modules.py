@@ -134,6 +134,18 @@ def calc_fit(x, coefs):
     return y
 
 
+def calc_gof(y, yfit):
+    from sklearn import metrics
+    gof = {}
+    rmse = sqrt( metrics.mean_squared_error(y, yfit) )
+    mae = metrics.mean_absolute_error(y, yfit)
+    r2 = metrics.r2_score(y, yfit)
+    gof['rmse'] = rmse
+    gof['mae'] = mae
+    gof['r2'] = r2
+    return gof
+
+
 # ------------------------------------------------------------------------
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
