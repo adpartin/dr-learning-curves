@@ -359,6 +359,7 @@ def run(args):
                          'verbose': 1
                          }
         keras_clr_kwargs = {}
+        del x_ge, x_dd
 
     # trn_args = ml_init_kwargs
     # trn_args.update(ml_fit_kwargs)

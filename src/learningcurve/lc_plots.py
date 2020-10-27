@@ -131,7 +131,7 @@ def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=
 def plot_lc(x, y, yerr=None, metric_name:str='score',
             xtick_scale:str='log2', ytick_scale:str='log2',
             xlim:list=None, ylim:list=None, title:str=None, figsize=(7, 5),
-            ls='', marker='.', 
+            ls='', marker='.', fontsize=13, legend_fontsize=11,
             color='b', markerfacecolor=None, markeredgecolor=None, alpha=0.7,
             label:str=None, ax=None):
     """
@@ -144,8 +144,6 @@ def plot_lc(x, y, yerr=None, metric_name:str='score',
     y = y.ravel()
     
     # Init figure
-    fontsize = 13
-    legend_fontsize = 10
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
     

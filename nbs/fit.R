@@ -35,7 +35,7 @@ bionomial <- function(d) {
 
 get_model <- function(data) {
   # eplaw models: error = a + b*training.examples^c
-  eplaw_models <- data %>%
+    eplaw_models <- data %>%
     do(model = nls(error ~ plaw_selfStart(training.examples, a, b, c),
                    data=.,
                    control=nls.control(warnOnly=TRUE, maxiter=100000, tol=1e-4, minFactor=1e-7),
@@ -44,11 +44,11 @@ get_model <- function(data) {
 }
 
 model_param <- function(x, y) {
-  data_train <- do.call(rbind, Map(data.frame, 
-                                  training.examples=x, 
-                                  error=y))
-  model <- get_model(data_train)
-  return (coef(model))
+    data_train <- do.call(rbind, Map(data.frame, 
+                                   training.examples=x, 
+                                   error=y))
+    model <- get_model(data_train)
+    return (coef(model))
 
 #   coef_est <- summary_coefs(model)
 #   return(coef_est)  
