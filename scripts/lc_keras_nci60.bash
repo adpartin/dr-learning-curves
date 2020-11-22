@@ -1,15 +1,16 @@
 #!/bin/bash
 
 # Example:
-# lc_keras.bash nci60 nn_reg0 0 flatten 0
-# lc_keras.bash nci60 nn_reg0 0 random 0
+# lc_keras.bash nci60 nn_reg0 0 0 flatten
+# lc_keras.bash nci60 nn_reg0 0 0 random
 
 SOURCE=$1
 MODEL=$2
 DEVICE=$3
-SAMPLING=$4
-SPLIT=$5
+SPLIT=$4
+SAMPLING=$5
 
+# Call this function from the main project dir!
 OUTDIR=lc.out.${SOURCE}.split${SPLIT}
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
@@ -19,8 +20,6 @@ LC_SIZES=12
 
 # EPOCH=2
 EPOCH=500
-
-# SPLIT=0
 
 export CUDA_VISIBLE_DEVICES=$3
 echo "Source: $SOURCE"
@@ -36,7 +35,6 @@ spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge.$SAMPLING/data.$SOURCE.dd.ge.
 ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
 
 r=1
-# r=2
 # r=3
 python src/main_lc.py \
     -dp $dpath \
@@ -52,7 +50,3 @@ python src/main_lc.py \
     --lc_sizes $LC_SIZES
 
     # --lc_sizes_arr 500001 570000 640000
-
-#     --min_size 20000 \
-#     --lc_sizes $LC_SIZES
-    # --rout run$r \

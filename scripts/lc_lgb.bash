@@ -17,11 +17,7 @@ OUTDIR=lc.out.${SOURCE}.lgb
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
-# LC_SIZES=5
-# LC_SIZES=7
 # LC_SIZES=10
-# LC_SIZES=12
-# LC_SIZES=25
 # LC_SIZES=40
 LC_SIZES=50
 
@@ -30,9 +26,6 @@ echo "Joblib:   $PAR_JOBS"
 echo "Sampling: $SAMPLING"
 
 data_version=July2020
-# dpath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.parquet 
-# spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.splits 
-# ls_hpo_dir=lgb.hpo.prms/${SOURCE}.lgb.hpo
 
 # Data and splits path
 None_Var="none"
@@ -40,11 +33,9 @@ None_Var="none"
 if [[ "$SAMPLING" == "$None_Var" ]]; then
     dpath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.parquet
     spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge/data.$SOURCE.dd.ge.splits
-    # trn_dir=$base_dir/lc.${src}.${model}.ls_hpo
 else
     dpath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge.$SAMPLING/data.$SOURCE.dd.ge.parquet
     spath=data/ml.dfs/$data_version/data.$SOURCE.dd.ge.$SAMPLING/data.$SOURCE.dd.ge.splits
-    # trn_dir=$base_dir/lc.${SOURCE}.${MODEL}.${SAMPLING}.ls_hpo
 fi
 # ls_hpo_dir=k-tuner/${SOURCE}_${MODEL}_tuner_out/ls_hpo
 ls_hpo_dir=lgb.hpo.prms/${SOURCE}.lgb.hpo

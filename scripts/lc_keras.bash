@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Example:
-# lc_keras.bash ctrp nn_reg0 0
 # lc_keras.bash ctrp nn_reg0 0 1
 
 SOURCE=$1
@@ -14,15 +13,11 @@ OUTDIR=lc.out.${SOURCE}.split${SPLIT}
 mkdir -p $OUTDIR
 echo "Outdir $OUTDIR"
 
-# LC_SIZES=5
 # LC_SIZES=7
-LC_SIZES=15
+LC_SIZES=12
 
 # EPOCH=2
-# EPOCH=10
 EPOCH=500
-
-# SPLIT=0
 
 export CUDA_VISIBLE_DEVICES=$3
 echo "Source: $SOURCE"
@@ -57,16 +52,4 @@ for r in $(seq 1 $n_runs); do
         --lc_sizes $LC_SIZES
 
         # --lc_sizes_arr 700000 500000 
-
-        # --lc_sizes $LC_SIZES \
-        # --min_size 10000 
-
-        # --max_size 700000
-        # --lc_sizes_arr 10000 20000 50000 100000 300000 500000 700000
-
-        # --lc_sizes_arr 400000
-        # --ps_hpo_dir $ps_hpo_dir \
-        # --lc_sizes $LC_SIZES \
-        # --min_size 2024
 done
-

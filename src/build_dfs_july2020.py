@@ -332,7 +332,8 @@ def run(args):
         if args.flatten:
             data = flatten_dist(df=data, n=args.n_samples, score_name=args.trg_name)
         else:
-            data = data.sample(n=args.n_samples, replace=False, random_state=0)
+            if args.n_samaples <= data.shape[0]:
+                data = data.sample(n=args.n_samples, replace=False, random_state=0)
         print_fn(f'data.shape {data.shape}\n')
 
     # Memory usage
