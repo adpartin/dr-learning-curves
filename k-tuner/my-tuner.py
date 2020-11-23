@@ -7,7 +7,7 @@ from pprint import pprint
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-# Great blog about keras-tuner
+# Blog about keras-tuner
 # www.curiousily.com/posts/hackers-guide-to-hyperparameter-tuning/
 import tensorflow as tf
 from tensorflow import keras
@@ -17,7 +17,7 @@ from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
 fpath = Path(__file__).resolve().parent
-sys.path.append( str(fpath/'../src') )  # must convert to str
+sys.path.append( str(fpath/'../src') )
 
 from utils.classlogger import Logger
 from utils.utils import load_data, dump_dict, get_print_func
@@ -132,7 +132,7 @@ def data_prep_nn1_def(xdata):
 # ------------------------------------------------------------
 
 
-data_sources = ['gdsc', 'gdsc1', 'gdsc2', 'ctrp', 'nci60', 'top21']
+data_sources = ['gdsc1', 'gdsc2', 'ctrp', 'nci60']
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--source', type=str, default='gdsc', choices=data_sources)

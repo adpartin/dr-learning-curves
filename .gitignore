@@ -5,3 +5,5 @@
 **/*out*/**
 /*tmp*/
 /*trn*/
+/lc.raw.all_data
+/old_data
