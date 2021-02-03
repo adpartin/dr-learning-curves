@@ -1,4 +1,3 @@
-# import post_process
 from post_process import *
 fpath = Path(__file__).resolve().parent
 print('Current path:', fpath)
@@ -23,16 +22,14 @@ mnn_label = 'mNN'
 
 # Outpath
 outpath = fpath/'../lc.fits/cmpr_models'
-# outpath = fpath/'../../lc.fits/cmpr_models'
 os.makedirs(outpath, exist_ok=True)
 
 # LC_raw
 dpath = fpath/'../lc.raw'  # LC_raw pathfile
-# dpath = fpath/'../../lc.raw' # LC_raw pathfile
-fname = 'all_scores.csv'  # main dir to LC_raw
+fname = 'all_scores.csv'   # main dir to LC_raw
 
 # Datasets
-source = ['GDSC1', 'GDSC2', 'CTRP', 'NCI60']
+source = ['GDSC1', 'GDSC2', 'CTRP', 'NCI-60']
 
 datasets = {
     'GDSC1': 
@@ -71,10 +68,10 @@ if __name__ == '__main__':
     for src in source:
         print(f'Processing dataset: {src}')
 
+        dgb_path = Path(dpath, datasets[src]['dgb_path'])
+        hgb_path = Path(dpath, datasets[src]['hgb_path'])
         snn_path = Path(dpath, datasets[src]['snn_path'])
         mnn_path = Path(dpath, datasets[src]['mnn_path'])
-        hgb_path = Path(dpath, datasets[src]['hgb_path'])
-        dgb_path = Path(dpath, datasets[src]['dgb_path'])
 
         # --------------------------------
         # Load data
@@ -92,7 +89,7 @@ if __name__ == '__main__':
             dgb = drop_bad_r2(dgb)
             
         # NCI60: remove bad samples
-        if src == 'NCI60':
+        if src == 'NCI-60':
             # np.unique(sorted(snn.tr_size))
             snn = snn[ ~snn['tr_size'].isin([369806, 499618, 580947, 610743, 625000]) ].reset_index(drop=True)
             mnn = mnn[ ~mnn['tr_size'].isin([369806, 499618, 580947, 610743, 625000]) ].reset_index(drop=True)
@@ -107,13 +104,13 @@ if __name__ == '__main__':
                   'ytick_scale': ytick_scale,
                   'plot_median': True}
 
-        def plot_lc_model(df, src_name, label):
-            if df is None:
-                return None
-            kwargs.update({'title': f'{src_name}; {label}'})
-            ax = lc_plots.plot_lc_single_metric(df, **kwargs);
-            ax.legend(frameon=True, fontsize=legend_fontsize, loc='best')
-            ax.grid(False)
+#         def plot_lc_model(df, src_name, label):
+#             if df is None:
+#                 return None
+#             kwargs.update({'title': f'{src_name}; {label}'})
+#             ax = lc_plots.plot_lc_single_metric(df, **kwargs);
+#             ax.legend(frameon=True, fontsize=legend_fontsize, loc='best')
+#             ax.grid(False)
 
         plot_lc_model(df=dgb, src_name=src, label=dgb_label)
         plot_lc_model(df=hgb, src_name=src, label=hgb_label)
@@ -163,20 +160,23 @@ if __name__ == '__main__':
         # -------------------------------- 
         if src == 'GDSC1':
             x_fit_mn = 10000;
+            # x_fit_mn = 20000;
             x_fit_mx = None
             # startParams = {'a': 1.2, 'b': -0.3, 'c': 0.04}
 
         elif src == 'GDSC2':
             x_fit_mn = 10000;
+            # x_fit_mn = 20000;
             x_fit_mx = None
             # startParams = {'a': 1.2, 'b': -0.3, 'c': 0.04}
             
         elif src == 'CTRP':
             x_fit_mn = 10000;
+            # x_fit_mn = 50000;
             x_fit_mx = None
             # startParams = {'a': 1.2, 'b': -0.3, 'c': 0.04}    
             
-        elif src == 'NCI60':    
+        elif src == 'NCI-60':    
             x_fit_mn = 100000;
             x_fit_mx = None
             # startParams = {'a': 1.2, 'b': -0.3, 'c': 0.04}
@@ -267,7 +267,6 @@ if __name__ == '__main__':
                 xf_plot, yf_plot = cc.calc_fit( x1=xf[0], x2=xf[-1] )
                 cc_lgb_dft = cc
             else:
-                # Old fit method (see single single_src.ipynb)  
                 prms_lgb_dft = fit_params(x=xf, y=yf)
                 yf_plot = biased_powerlaw(xf, **prms_lgb_dft)
                 xf_plot = xf
@@ -297,7 +296,6 @@ if __name__ == '__main__':
                 xf_plot, yf_plot = cc.calc_fit( x=xf )
                 cc_lgb_hpo = cc
             else:    
-                # Old fit method (see single single_src.ipynb) 
                 prms_lgb_hpo = fit_params(x=xf, y=yf)
                 yf_plot = biased_powerlaw(xf, **prms_lgb_hpo)
                 xf_plot = xf
@@ -326,7 +324,6 @@ if __name__ == '__main__':
                 xf_plot, yf_plot = cc.calc_fit( x=xf )
                 cc_snn = cc
             else:
-                # Old fit method (see single single_src.ipynb)  
                 prms_snn = fit_params(x=xf, y=yf)
                 yf_plot = biased_powerlaw(xf, **prms_snn)
                 xf_plot = xf
@@ -355,7 +352,6 @@ if __name__ == '__main__':
                 xf_plot, yf_plot = cc.calc_fit( x=xf )
                 cc_mnn = cc        
             else:
-                # Old fit method (see single single_src.ipynb) 
                 prms_mnn = fit_params(x=xf, y=yf)
                 yf_plot = biased_powerlaw(xf, **prms_mnn)
                 xf_plot = xf
@@ -415,15 +411,15 @@ if __name__ == '__main__':
         # --------------------------------
         # Extrapolate
         # --------------------------------
-        def inv_powerlaw(y, prms):
-            vv = ((y - prms['gamma']) / prms['alpha'] ) ** (1/prms['beta'])
-            if np.isnan(vv) == False:
-                vv = int(vv)
-            return vv
+        # def inv_powerlaw(y, prms):
+        #     vv = ((y - prms['gamma']) / prms['alpha'] ) ** (1/prms['beta'])
+        #     if np.isnan(vv) == False:
+        #         vv = int(vv)
+        #     return vv
 
-        def get_score_at_2mK(dfit, prms):
-            x_a = 2 * dfit['tr_size'].values[-1]
-            return biased_powerlaw(x_a, **prms)
+        # def get_score_at_2mK(dfit, prms):
+        #     x_a = 2 * dfit['tr_size'].values[-1]
+        #     return biased_powerlaw(x_a, **prms)
 
 
         red_percent = 0.9  # percent reduction
