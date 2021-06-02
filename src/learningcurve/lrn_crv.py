@@ -45,16 +45,13 @@ class LearningCurve():
             X, Y,
             meta=None,
             cv_lists=None,  # (tr_id, vl_id, te_id)
-
             n_splits: int=1,
             mltype: str='reg',
-
             lc_step_scale: str='log2',
             min_size = 0,
             max_size = None,
             lc_sizes: int=None,
             lc_sizes_arr: list=[],
-
             print_fn=print,
             save_model=False,
             outdir=Path('./')):
@@ -197,9 +194,13 @@ class LearningCurve():
 
         else:
             # Fixed spacing
+            key = list(self.tr_dct.keys())[0]
+            total_trn_samples = len(self.tr_dct[key])
             if self.max_size is None:
-                key = list(self.tr_dct.keys())[0]
-                self.max_size = len(self.tr_dct[key]) # total number of available training samples
+                self.max_size = total_trn_samples # total number of available training samples
+            else:
+                if self.max_size > total_trn_samples:
+                    self.max_size = total_trn_samples
 
             # Full vector of sizes
             # (we create a vector with very large values so that we later truncate it with max_size)
@@ -217,39 +218,40 @@ class LearningCurve():
                         # www.researchgate.net/post/is_the_logarithmic_spaced_vector_the_same_in_any_base
                         pw = np.linspace(0, self.lc_sizes-1, num=self.lc_sizes) / (self.lc_sizes-1)
                         m = self.min_size * (self.max_size/self.min_size) ** pw
-                        # m = 2 ** np.linspace(self.min_size, self.max_size, self.lc_sizes)
-                        m = np.array( [int(i) for i in m] )
-                        self.tr_sizes = m
-                        self.print_fn('\nTrain sizes: {}\n'.format(self.tr_sizes))
-                        return None
+                        # # m = 2 ** np.linspace(self.min_size, self.max_size, self.lc_sizes)
+                        # m = np.array( [int(i) for i in m] )
+                        # self.tr_sizes = m
+                        # self.print_fn('\nTrain sizes: {}\n'.format(self.tr_sizes))
+                        # return None
 
-            # TODO: figure out if the code below is still necessary
+            # m = np.array( [int(i) for i in m] ) # cast to int
+
+            # # Set min size
+            # idx_min = np.argmin( np.abs( m - self.min_size ) )
+            # if m[idx_min] > self.min_size:
+            #     m = m[idx_min:]  # all values larger than min_size
+            #     m = np.concatenate( (np.array([self.min_size]), m) )  # preceed arr with specified min_size
+            # else:
+            #     m = m[idx_min:]
+
+            # # Set max size
+            # idx_max = np.argmin( np.abs( m - self.max_size ) )
+            # if m[idx_max] > self.max_size:
+            #     m = list(m[:idx_max])    # all values EXcluding the last one
+            #     m.append(self.max_size)
+            # else:
+            #     m = list(m[:idx_max+1])  # all values INcluding the last one
+            #     m.append(self.max_size) # TODO: should we append this??
+            #     # If the diff btw max_samples and the latest sizes (m[-1] - m[-2]) is "too small",
+            #     # then remove max_samples from the possible sizes.
+            #     if 0.5*m[-3] > (m[-1] - m[-2]): m = m[:-1] # heuristic to drop the last size
+
             m = np.array( [int(i) for i in m] ) # cast to int
-
-            # Set min size
-            idx_min = np.argmin( np.abs( m - self.min_size ) )
-            if m[idx_min] > self.min_size:
-                m = m[idx_min:]  # all values larger than min_size
-                m = np.concatenate( (np.array([self.min_size]), m) )  # preceed arr with specified min_size
-            else:
-                m = m[idx_min:]
-
-            # Set max size
-            idx_max = np.argmin( np.abs( m - self.max_size ) )
-            if m[idx_max] > self.max_size:
-                m = list(m[:idx_max])    # all values EXcluding the last one
-                m.append(self.max_size)
-            else:
-                m = list(m[:idx_max+1])  # all values INcluding the last one
-                m.append(self.max_size) # TODO: should we append this??
-                # If the diff btw max_samples and the latest sizes (m[-1] - m[-2]) is "too small",
-                # then remove max_samples from the possible sizes.
-                if 0.5*m[-3] > (m[-1] - m[-2]): m = m[:-1] # heuristic to drop the last size
-
             self.tr_sizes = m
         # --------------------------------------------
 
         self.print_fn('\nTrain sizes: {}\n'.format(self.tr_sizes))
+        return None
 
 
     def trn_learning_curve(self,
