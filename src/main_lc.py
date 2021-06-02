@@ -163,6 +163,11 @@ def run(args):
     ls_hpo_dir = None if args['ls_hpo_dir'] is None else Path(args['ls_hpo_dir']).resolve()
     ps_hpo_dir = None if args['ps_hpo_dir'] is None else Path(args['ps_hpo_dir']).resolve()
 
+    if args['max_size'] is not None:
+        assert args['min_size'] < args['max_size'], f"min train size (min_size={args['min_size']}) "\
+                                                    f"must be smaller than max train size "\
+                                                    f"(max_size={args['max_size']})."
+
     if args['splitdir'] is None:
         splitdir = None
     else:
