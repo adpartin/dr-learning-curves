@@ -14,3 +14,19 @@ $ bash tuner.bash gdsc 10000 nn0
 ```
 This will dump the results to `k-tuner/gdsc_nn0_tuner_out/tr_sz_10000`.<br>
 The the best set of HPs (with some other metadata) is saved to `k-tuner/gdsc_nn0_tuner_out/tr_sz_13377/my_logs/best_hps.txt`.
+
+## Generate LC Plots
+Generate a plot that compares the learning curves of models for each dataset.
+```
+python src/plot_cmpr_models.py
+```
+
+Generate plots of raw LC data of dGBDT for each dataset.
+```
+python src/plot_glimpse.py
+```
+
+Generate histograms for each dataset.
+```
+python src/plot_glimpse.py
+```
