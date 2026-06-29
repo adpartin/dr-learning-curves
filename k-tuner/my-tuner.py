@@ -12,12 +12,13 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+import kerastuner
 from kerastuner.tuners import RandomSearch, BayesianOptimization, Hyperband, Sklearn
 from kerastuner.engine.hypermodel import HyperModel
 from kerastuner.engine.hyperparameters import HyperParameters
 
 fpath = Path(__file__).resolve().parent
-sys.path.append( str(fpath/'../src') )  # must convert to str
+sys.path.append(str(fpath/'../src'))  # must convert to str
 
 from utils.classlogger import Logger
 from utils.utils import load_data, dump_dict, get_print_func
@@ -26,15 +27,16 @@ from ml.data import extract_subset_fea
 from datasplit.splitter import data_splitter, gen_single_split
 
 t0 = time()
-MAX_TRIALS = 50
+# MAX_TRIALS = 50
+MAX_TRIALS = 2
 EXECUTIONS_PER_TRIAL = 1
 EPOCHS = 15
 OBJECTIVE = 'val_mae'
 
 
-def get_data(datapath, seed=None, tr_sz=None, vl_sz=None, data_prep_def=None,
+def get_data(datapath, seed=None, tr_sz=None, vl_sz=0.2, data_prep_def=None,
              print_fn=print):
-    data = load_data( datapath )
+    data = load_data(datapath)
     print_fn('data.shape {}'.format(data.shape))
     trg_name = 'AUC'
 
@@ -42,7 +44,7 @@ def get_data(datapath, seed=None, tr_sz=None, vl_sz=None, data_prep_def=None,
     fea_list = ['ge', 'dd']
     fea_sep = '_'
     xdata = extract_subset_fea(data, fea_list=fea_list, fea_sep=fea_sep)
-    meta = data.drop( columns=xdata.columns )
+    meta = data.drop(columns=xdata.columns)
     ydata = meta[[ trg_name ]]
     del data
 
@@ -77,9 +79,9 @@ def get_data(datapath, seed=None, tr_sz=None, vl_sz=None, data_prep_def=None,
         xtr = xtr.iloc[:tr_sz, :]
         ytr = ytr.iloc[:tr_sz]
 
-    if (vl_sz is not None) and (vl_sz < xvl.shape[0]):
-        xvl = xvl.iloc[:vl_sz, :]
-        yvl = yvl.iloc[:vl_sz]
+    # if (vl_sz is not None) and (vl_sz < xvl.shape[0]):
+    #     xvl = xvl.iloc[:vl_sz, :]
+    #     yvl = yvl.iloc[:vl_sz]
 
     # xtr = xtr.values
     # ytr = ytr.values
@@ -137,8 +139,8 @@ data_sources = ['gdsc', 'gdsc1', 'gdsc2', 'ctrp', 'nci60', 'top21']
 parser = argparse.ArgumentParser()
 parser.add_argument('--source', type=str, default='gdsc', choices=data_sources)
 parser.add_argument('--seed', type=int, default=0)
-parser.add_argument('--tr_sz', type=int, default=None)
-parser.add_argument('--vl_sz', type=int, default=None)
+parser.add_argument('--tr_sz', type=float, default=None)
+parser.add_argument('--vl_sz', type=float, default=None)
 parser.add_argument('--ml', type=str, default='nn_reg0',
                     choices=['nn_reg0', 'nn_reg1', 'lgb'])
 args = parser.parse_args()
@@ -180,38 +182,39 @@ tr_sz = len(ytr)
 # ------------------------------------------------
 # Try Sklearn tuner for LightGBM
 # ------------------------------------------------
-import lightgbm as lgb
-def build_lgb(hp):
-    model = lgb.LGBMRegressor(
-        n_estimators=hp.Int('n_estimators', 100, 3000, step=100),
-        max_depth=hp.Int('max_depth', 10, 100, step=10, default=10),
-        num_leaves=hp.Int('num_leaves', 10, 200, step=10, default=10),
-        learning_rate=hp.Float('learning_rate', min_value=1e-2, max_value=0.5e-1,
-                      sampling='LOG', default=1e-1)
-        n_jobs=8,
-        random_state=None)
+# import lightgbm as lgb
+# def build_lgb(hp):
+#     model = lgb.LGBMRegressor(
+#         n_estimators=hp.Int('n_estimators', 100, 3000, step=100),
+#         max_depth=hp.Int('max_depth', 10, 100, step=10, default=10),
+#         num_leaves=hp.Int('num_leaves', 10, 200, step=10, default=10),
+#         learning_rate=hp.Float('learning_rate', min_value=1e-2, max_value=0.5e-1,
+#                       sampling='LOG', default=1e-1),
+#         n_jobs=8,
+#         random_state=None)
 
-import sklearn
-tuner = Sklearn(
-        oracle=BayesianOptimization(
-            objective=kt.Objective('score', direction='min'),
-            max_trials=100),
-        hypermodel=build_model,
-        scoring=sklearn.metrics.make_scorer(sklearn.metrics.mean_absolute_error),
-        cv=sklearn.model_selection.KFold(5),
-        directory=outdir,
-        project_name=proj_name,
-        overwrite=True)
+# proj_name = f'tr_sz_{xtr.shape[0]}'
+# import sklearn
+# oracle = kerastuner.oracles.BayesianOptimization(
+#     objective=kerastuner.Objective('score', 'min'),
+#     max_trials=100
+# )
+# tuner = Sklearn(
+#         oracle=oracle,
+#         hypermodel=build_lgb,
+#         scoring=sklearn.metrics.make_scorer(sklearn.metrics.mean_absolute_error),
+#         cv=sklearn.model_selection.KFold(5),
+#         directory=outdir,
+#         project_name=proj_name,
+#         overwrite=True)
 
-tuner = RandomSearch(
-    hypermodel,
-    objective=OBJECTIVE,
-    max_trials=MAX_TRIALS,
-    executions_per_trial=EXECUTIONS_PER_TRIAL,
-    distribution_strategy=dist_strategy,
-    directory=outdir,
-    project_name=proj_name,
-    overwrite=True)
+# tuner.search_space_summary()
+
+# # import pdb; pdb.set_trace()
+# print_fn('Start HP search.')
+# # tuner.search(xtr, ytr, eval_set=(xvl, yvl))
+# tuner.search(xtr, ytr)
+# best_model = tuner.get_best_models(num_models=1)[0]
 # ------------------------------------------------
 
 """Basic case:
@@ -417,7 +420,7 @@ tuner.search_space_summary()
 
 
 # import pdb; pdb.set_trace()
-print_fn('Start HP search ...')
+print_fn('Start HP search.')
 tuner.search(x=xtr, y=ytr,
              epochs=EPOCHS,
              batch_size=32,
@@ -429,7 +432,7 @@ os.makedirs(my_log_out, exist_ok=True)
 tuner.results_summary()
 model = tuner.get_best_models(num_models=1)[0]
 results = model.evaluate(xvl, yvl, batch_size=128, verbose=0)
-model.save( str(my_log_out/'best_model_trained' ))
+model.save(str(my_log_out/'best_model_trained'))
 print(results)
 
 # Get dict with best HPs
@@ -447,7 +450,7 @@ print(best_hps)
 best_hps = tuner.get_best_hyperparameters()[0]
 model = tuner.hypermodel.build(best_hps)
 results = model.evaluate(xvl, yvl, batch_size=128, verbose=0)
-model.save( str(my_log_out/'best_model_untrained' ))
+model.save(str(my_log_out/'best_model_untrained'))
 print(results)
 # best_model.fit(...)
 

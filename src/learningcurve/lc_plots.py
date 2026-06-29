@@ -68,6 +68,7 @@ def set_yticks(ax, ylim=None):
     ax.get_yaxis().set_major_formatter( matplotlib.ticker.ScalarFormatter() )
     if (ylim is None):
         ylim = ax.get_ylim()
+    ylim = [max(v, np.finfo(float).eps) for v in ylim]
     ylim_log = np.log2(ylim)
     ylabels_log = np.logspace(ylim_log[0], ylim_log[1], num=5, base=2)
     ylabels_log = np.around(ylabels_log, decimals=3)
@@ -90,6 +91,9 @@ def plot_lc_many_metric(scores, outdir:Path, metrics:list=None, **plot_args):
             ax.grid(True)
             plt.tight_layout()
             plt.savefig(outdir/(f'lc.{met}.png'), dpi=200)
+            del ax
+
+        return None
     
 
 def plot_lc_single_metric(scores, metric_name:str, tr_set:str='te', plot_median=True,
@@ -180,7 +184,11 @@ def plot_lc(x, y, yerr=None, metric_name:str='score',
     ax.grid(True)
     
     ax.tick_params(axis='both', labelsize=11)
-    ax = set_yticks(ax)
+    if ytick_scale == 'log2':
+        ax = set_yticks(ax)
+    if xtick_scale == 'log2':
+        ax = set_xticks(ax, xlabels_log)
+
     return ax
 # ----------------------------------------------------------------------
 
